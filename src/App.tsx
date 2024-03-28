@@ -10,8 +10,10 @@ import FaucetNode from './nodes/FaucetNode';
 import PipeNode from './nodes/PipeNode';
 import EndNode from './nodes/EndNode';
 import { useEffect } from 'react';
+import Transfer from './edges/Transfer';
 
 const nodeTypes = { colorChooser: ColorChooserNode, faucet: FaucetNode, pipe: PipeNode, end: EndNode };
+const edgeTypes = {transfer: Transfer}
 
 const selector = (state) => ({
   nodes: state.nodes,
@@ -57,6 +59,7 @@ function Flow() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         fitView
       />
     </span>

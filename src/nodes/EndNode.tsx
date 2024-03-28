@@ -9,7 +9,7 @@ function EndNode({ id, data }: NodeProps<NodeData>) {
     <div>
       <Handle type="target" position={Position.Top} />
       <div style={{ padding: 20 }}>
-        recieved {data.total}
+        recieved {data.packets.length} packets
       </div>
       <Handle type="source" position={Position.Bottom} />
     </div>

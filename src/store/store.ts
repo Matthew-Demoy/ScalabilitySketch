@@ -47,7 +47,7 @@ interface EndNodeData extends Common {
 }
 
 
-interface EdgeData extends Common { 
+export interface EdgeData extends Common { 
     latency : number
 }
 
@@ -141,7 +141,7 @@ const useStore = create<RFState>((set, get) => ({
     },
     recievePacket: (nodeId: string, packet: Packet, isNode : boolean) => {
         if(isNode){
-        set({
+            set({
             nodes: get().nodes.map((node) => {
                 if (node.id === nodeId) {
                     node.data = { ...node.data, packets: [packet, ...node.data.packets] };
@@ -153,7 +153,7 @@ const useStore = create<RFState>((set, get) => ({
             set({
                 edges: get().edges.map((edge) => {
                     if (edge.id === nodeId) {
-                        edge.data = { ...edge.data ?? {latency : 10}, packets: [...edge.data.packets, packet] };
+                        edge.data = { ...edge.data, packets: [...edge.data.packets, packet] };
                     }
     
                     return edge;
@@ -170,21 +170,10 @@ const useStore = create<RFState>((set, get) => ({
     tick: () => {
         const { nodes, edges } = get();
         const generators = nodes.filter(isSpawnNode);
-        const pipes = nodes.filter(isPipeNode);
-        const ends = nodes.filter((node) => node.type === 'end');
-
-        // If we are not running, we don't need to do anything
-        if (!get().isRunning) {
-            return;
-        }
+        const pipes = nodes.filter(isPipeNode);        
 
         // If we have no generators, we don't need to do anything
         if (generators.length === 0) {
-            return;
-        }
-
-        // If we have no ends, we don't need to do anything
-        if (ends.length === 0) {
             return;
         }
 
@@ -196,14 +185,26 @@ const useStore = create<RFState>((set, get) => ({
                 //Go through each packet and increment the time, if the time is greater than the latency, delete the packet form the array
                 for(let i = 0; i < node.data.packets.length; i++){
                     node.data.packets[i].t += 1
-                    if(node.data.latency >= node.data.latency){
-                        node.data.packets.splice(i, 1)
+                    if(node.data.packets[i].t >= node.data.latency){                        
                         edges.forEach((edge) => {
                             if(edge.source === node.id){                                
                                 updates.push({outId : edge.id, data : {t : 0}, isNode : false})                                
                             }
                         })
-                        
+                        node.data.packets.splice(i, 1)                        
+                    }
+                }
+            }
+        })
+
+        edges.forEach((edge) => {
+            if(edge.data && edge.data?.packets.length > 0){
+                //Go through each packet and increment the time, if the time is greater than the latency, delete the packet form the array
+                for(let i = 0; i < edge.data.packets.length; i++){
+                    edge.data.packets[i].t += 1
+                    if(edge.data.packets[i].t >= edge.data.latency){
+                        edge.data.packets.splice(i, 1)
+                        updates.push({outId : edge.target, data : {t : 0}, isNode : true})
                     }
                 }
             }
@@ -216,12 +217,13 @@ const useStore = create<RFState>((set, get) => ({
             edges.forEach((edge) => {
                 if(edge.source === generator.id){
                     for( let i = 0 ; i < spawnRate; i++){
-                        updates.push({outId : edge.id, data : {t : 0}, isNode : true})
+                        updates.push({outId : edge.id, data : {t : 0}, isNode : false})
                     }                    
                 }
             })
         });
 
+        
         updates.forEach((update) => {
             get().recievePacket(update.outId, update.data, update.isNode)
         })

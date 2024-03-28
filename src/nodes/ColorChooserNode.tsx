@@ -1,4 +1,3 @@
-import React from 'react';
 import { Handle, NodeProps, Position } from 'reactflow';
 
 import useStore, { NodeData } from '../store/store';
