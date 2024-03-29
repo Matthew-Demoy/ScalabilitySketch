@@ -162,7 +162,6 @@ const useStore = create<RFState>((set, get) => ({
         }
 
         let updates : Update[] = []
-        console.log(nodes, edges)
         // for each node see if it has packets, increment the time and send the packets
         pipes.forEach((node) => {
             if(node.data.tasks.size > 0){
@@ -170,20 +169,16 @@ const useStore = create<RFState>((set, get) => ({
                 node.data.tasks.forEach((task, taskId) => {
                     task.t += 1;
                     if(task.t >= node.data.latency && task.status !== TaskStatus.WAITING){
-                        console.log("task", task)                                 
                         edges.forEach((edge) => {
                             const matchingEdge = task.status === TaskStatus.PROCESS_IN ? edge.source : edge.target                            
                             if(matchingEdge === node.id){                                
-                                console.log("pipe is updating", edge.id, task.id, task.status)
                                 const direction = task.status === TaskStatus.PROCESS_IN ? Direction.TARGET : Direction.SOURCE
                                 updates.push({outId : edge.id, id: task.id, direction})                                
                             }
                         })
                         if(task.status === TaskStatus.PROCESS_IN){
-                            console.log("send out task", task)
                             node.data.tasks.set(taskId, {id: taskId, t: 0, status: TaskStatus.WAITING})
                         }else{
-                            console.log("deleting task", task)
                             node.data.tasks.delete(taskId)
                         }
                         
