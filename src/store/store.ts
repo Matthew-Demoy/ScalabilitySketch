@@ -15,51 +15,33 @@ import {
 
 import initialNodes from '../nodes/index';
 import initialEdges from '../edges/index';
+import { NodeData, SpawnNodeData, TaskStatus, isPipeNode, isSpawnNode } from '../nodes/types';
+import { Direction, EdgeData } from '../edges/types';
 
 interface Packet {
     t : number
-}
-interface Common {
-    packets : Packet[]
-}
-interface SpawnNodeData extends Common {
-    spawnRate: number
-}
-
-type SpawnNode = Node<SpawnNodeData>;
-
-const isSpawnNode = (node: Node<NodeData>): node is SpawnNode => {
-    return node.type === 'faucet';
-};
-
-interface PipeData extends Common{
-    rate: number
-    latency: number
-}
-type PipeNode = Node<PipeData>;
-
-const isPipeNode = (node: Node<NodeData>): node is PipeNode => {
-    return node.type === 'pipe';
-};
-
-interface EndNodeData extends Common {
-    total: number
+    id: number
 }
 
 
-export interface EdgeData extends Common { 
-    latency : number
-}
-
-interface Update {
+interface UpdateCommon {
     outId: string;
-    data: Packet
-    isNode : boolean
+    id: number;
 }
 
-export type NodeData = SpawnNodeData | PipeData | EndNodeData
+interface UpdateNode extends UpdateCommon {}
+interface UpdateEdge extends UpdateCommon {
+    direction: Direction
+}
+type Update = UpdateNode | UpdateEdge;
+
+//typeguard for is updateEdge
+function isUpdateEdge(update: Update): update is UpdateEdge {
+    return (update as UpdateEdge).direction !== undefined;
+}
 
 export type RFState = {
+    taskCounter: number;
     nodes: Node<NodeData>[];
     edges: Edge<EdgeData>[];
     isRunning: boolean;
@@ -75,12 +57,14 @@ export type RFState = {
     startSimulation: () => void;
     resetSimulation: () => void;
     tick: () => void;
-    recievePacket: (nodeId: string, packet: Packet, isNode : boolean) => void;
+    recievePacket: (update : Update) => void;
+    incrementTaskCounter: () => void;
     
 };
 
 // this is our useStore hook that we can use in our components to get parts of the store and call actions
 const useStore = create<RFState>((set, get) => ({
+    taskCounter: 0,
     nodes: initialNodes,
     edges: initialEdges,
     isRunning: false,
@@ -139,12 +123,13 @@ const useStore = create<RFState>((set, get) => ({
             }),
         });
     },
-    recievePacket: (nodeId: string, packet: Packet, isNode : boolean) => {
-        if(isNode){
+    recievePacket: (update : Update) => {
+        const { outId : nodeId } = update
+        if(!isUpdateEdge(update)){
             set({
             nodes: get().nodes.map((node) => {
                 if (node.id === nodeId) {
-                    node.data = { ...node.data, packets: [packet, ...node.data.packets] };
+                    node.data.tasks.set(update.id, {id: update.id, t: 0, status: TaskStatus.PROCESS_IN})                    
                 }
 
                 return node;
@@ -153,7 +138,7 @@ const useStore = create<RFState>((set, get) => ({
             set({
                 edges: get().edges.map((edge) => {
                     if (edge.id === nodeId) {
-                        edge.data = { ...edge.data, packets: [...edge.data.packets, packet] };
+                        edge.data?.messages.set(update.id,{t: 0, id: update.id, direction: update.direction})                        
                     }
     
                     return edge;
@@ -167,8 +152,11 @@ const useStore = create<RFState>((set, get) => ({
     resetSimulation: () => {
         set({ isRunning: false });
     },
+    incrementTaskCounter: () => {
+        set((state) => ({ taskCounter: state.taskCounter + 1 }));
+    },
     tick: () => {
-        const { nodes, edges } = get();
+        const { nodes, edges, taskCounter, incrementTaskCounter } = get();
         const generators = nodes.filter(isSpawnNode);
         const pipes = nodes.filter(isPipeNode);        
 
@@ -181,30 +169,30 @@ const useStore = create<RFState>((set, get) => ({
 
         // for each node see if it has packets, increment the time and send the packets
         pipes.forEach((node) => {
-            if(node.data.packets.length > 0){
-                //Go through each packet and increment the time, if the time is greater than the latency, delete the packet form the array
-                for(let i = 0; i < node.data.packets.length; i++){
-                    node.data.packets[i].t += 1
-                    if(node.data.packets[i].t >= node.data.latency){                        
+            if(node.data.tasks.size > 0){
+                //Go through each task and increment the time, if the time is greater than the latency, delete the task from the map
+                node.data.tasks.forEach((task, taskId) => {
+                    task.t += 1;
+                    if(task.t >= node.data.latency && task.status === TaskStatus.PROCESS_IN){                        
                         edges.forEach((edge) => {
                             if(edge.source === node.id){                                
-                                updates.push({outId : edge.id, data : {t : 0}, isNode : false})                                
+                                updates.push({outId : edge.id, id: task.id})                                
                             }
-                        })
-                        node.data.packets.splice(i, 1)                        
+                        })                     
+                        node.data.tasks.set(taskId, {id: taskId, t: 0, status: TaskStatus.WAITING})
                     }
-                }
+                });
             }
         })
 
         edges.forEach((edge) => {
-            if(edge.data && edge.data?.packets.length > 0){
-                //Go through each packet and increment the time, if the time is greater than the latency, delete the packet form the array
-                for(let i = 0; i < edge.data.packets.length; i++){
-                    edge.data.packets[i].t += 1
-                    if(edge.data.packets[i].t >= edge.data.latency){
-                        edge.data.packets.splice(i, 1)
-                        updates.push({outId : edge.target, data : {t : 0}, isNode : true})
+            if(edge.data && edge.data?.messages.length > 0){
+                // Go through each message and increment the time, if the time is greater than the latency, delete the message from the array
+                for(let i = 0; i < edge.data.messages.length; i++){
+                    edge.data.messages[i].t += 1
+                    if(edge.data.messages[i].t >= edge.data.latency){
+                        edge.data.messages.splice(i, 1)
+                        updates.push({outId : edge.target,  direction: Direction.DESTINATION,  id: i})
                     }
                 }
             }
@@ -213,11 +201,12 @@ const useStore = create<RFState>((set, get) => ({
         // For each generator, we want to generate items
         generators.forEach((generator) => {
             const spawnRate = (generator.data as SpawnNodeData).spawnRate;
-
+            
             edges.forEach((edge) => {
                 if(edge.source === generator.id){
                     for( let i = 0 ; i < spawnRate; i++){
-                        updates.push({outId : edge.id, data : {t : 0}, isNode : false})
+                        updates.push({outId : edge.id, id : taskCounter, isNode : false})                        
+                        incrementTaskCounter()
                     }                    
                 }
             })
@@ -225,7 +214,7 @@ const useStore = create<RFState>((set, get) => ({
 
         
         updates.forEach((update) => {
-            get().recievePacket(update.outId, update.data, update.isNode)
+            get().recievePacket(update)
         })
     }
 

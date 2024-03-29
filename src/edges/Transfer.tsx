@@ -1,6 +1,6 @@
 import React, { FC } from 'react';
 import { EdgeProps, getBezierPath, EdgeLabelRenderer, BaseEdge } from 'reactflow';
-import { EdgeData } from '../store/store';
+import { EdgeData } from './types';
 
 const Transfer: FC<EdgeProps<EdgeData>> = ({
   id,

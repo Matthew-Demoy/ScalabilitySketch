@@ -1,9 +1,9 @@
-import React from 'react';
 import { Handle, NodeProps, Position } from 'reactflow';
 
-import useStore, { NodeData } from '../store/store';
+import useStore from '../store/store';
+import { PipeData } from './types';
 
-function PipeNode({ id, data }: NodeProps<NodeData>) {
+function PipeNode({ id, data }: NodeProps<PipeData>) {
   
 
   const updateMultiplier = useStore((state) => state.updateMultiplier);
