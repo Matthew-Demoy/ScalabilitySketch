@@ -1,7 +1,5 @@
-import React from 'react';
 import { Handle, NodeProps, Position } from 'reactflow';
-
-import useStore, { NodeData } from '../store/store';
+import { NodeData } from './types';
 
 function EndNode({ id, data }: NodeProps<NodeData>) {
 
@@ -9,7 +7,7 @@ function EndNode({ id, data }: NodeProps<NodeData>) {
     <div>
       <Handle type="target" position={Position.Top} />
       <div style={{ padding: 20 }}>
-        recieved {data.packets.length} packets
+        recieved {data.tasks.size} packets
       </div>
       <Handle type="source" position={Position.Bottom} />
     </div>

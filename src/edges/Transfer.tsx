@@ -21,39 +21,44 @@ const Transfer: FC<EdgeProps<EdgeData>> = ({
     targetPosition,
   });
 
-  
+ 
   const latency = data.latency
-  const packets = data.packets.map((packet,index) => {
-    
-    const progress = packet.t / latency
+  
+  let messages : any = [];
 
-    const x = sourceX + (targetX - sourceX) * progress
-    const y = sourceY + (targetY - sourceY) * progress
-
-    return (
-        <EdgeLabelRenderer
-        key={index}>
-        <div
-          style={{
-            position: 'absolute',
-            transform: `translate(-50%, -50%) translate(${x}px,${y}px)`,
-            background: '#ffcc00',
-            padding: 10,
-            borderRadius: 5,
-            fontSize: 12,
-            fontWeight: 700,
-          }}
-          className="nodrag nopan"
-        >
-          packet
-        </div>
-      </EdgeLabelRenderer>
-    )
+  
+  data?.messages.forEach((message, messageId) => {
+      
+      const progress = message.t / latency
+  
+      const x = sourceX + (targetX - sourceX) * progress
+      const y = sourceY + (targetY - sourceY) * progress
+  
+      messages.push(
+          <EdgeLabelRenderer
+          key={messageId}>
+          <div
+            style={{
+              position: 'absolute',
+              transform: `translate(-50%, -50%) translate(${x}px,${y}px)`,
+              background: '#ffcc00',
+              padding: 10,
+              borderRadius: 5,
+              fontSize: 12,
+              fontWeight: 700,
+            }}
+            className="nodrag nopan"
+          >
+            task
+          </div>
+        </EdgeLabelRenderer>
+      )
   })
+
   return (
     <>
       <BaseEdge id={id} path={edgePath} />
-        {packets}
+        {messages}
     </>
   );
 };

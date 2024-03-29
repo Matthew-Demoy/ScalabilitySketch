@@ -41,7 +41,14 @@ interface EndNodeData extends NodeCommon {
     total: number
 }
 
+type EndNode = Node<EndNodeData>;
+
+const isEndNode = (node: Node<NodeData>): node is EndNode => {
+    return node.type === 'end';
+}
+
+
 export type NodeData = SpawnNodeData | PipeData | EndNodeData
 
-export { isSpawnNode, isPipeNode };
+export { isSpawnNode, isPipeNode, isEndNode };
 export type { SpawnNodeData, PipeData, EndNodeData };

@@ -15,7 +15,7 @@ import {
 
 import initialNodes from '../nodes/index';
 import initialEdges from '../edges/index';
-import { NodeData, SpawnNodeData, TaskStatus, isPipeNode, isSpawnNode } from '../nodes/types';
+import { NodeData, SpawnNodeData, TaskStatus, isEndNode, isPipeNode, isSpawnNode } from '../nodes/types';
 import { Direction, EdgeData } from '../edges/types';
 
 interface Packet {
@@ -53,7 +53,6 @@ export type RFState = {
     setEdges: (edges: Edge[]) => void;
     updateSpawnRate: (nodeId: string, rate: number) => void;
     updateMultiplier: (nodeId: string, rate: number) => void;
-    updateRecived: (nodeId: string, recieved: number) => void;
     startSimulation: () => void;
     resetSimulation: () => void;
     tick: () => void;
@@ -112,33 +111,29 @@ const useStore = create<RFState>((set, get) => ({
             }),
         });
     },
-    updateRecived: (nodeId: string, recieved: number) => {
-        set({
-            nodes: get().nodes.map((node) => {
-                if (node.id === nodeId) {
-                    node.data = { ...node.data, total: recieved + node.data.total };
-                }
-
-                return node;
-            }),
-        });
-    },
     recievePacket: (update : Update) => {
         const { outId : nodeId } = update
         if(!isUpdateEdge(update)){
             set({
-            nodes: get().nodes.map((node) => {
+            nodes: get().nodes.map((node) => {                             
                 if (node.id === nodeId) {
-                    node.data.tasks.set(update.id, {id: update.id, t: 0, status: TaskStatus.PROCESS_IN})                    
+                    let status = node.data.tasks.get(update.id)?.status || TaskStatus.PROCESS_IN
+                    status = status == TaskStatus.WAITING ? TaskStatus.PROCESS_OUT : status
+                    const newTasks = new Map(node.data.tasks);
+                    newTasks.set(update.id, {id: update.id, t: 0, status});
+                    node.data.tasks = newTasks;
                 }
-
                 return node;
             }),
         });}else{
+            console.log("update for edge", update)
             set({
                 edges: get().edges.map((edge) => {
-                    if (edge.id === nodeId) {
-                        edge.data?.messages.set(update.id,{t: 0, id: update.id, direction: update.direction})                        
+                    if (edge.id === nodeId && edge.data !== undefined) {
+                        console.log("add new message", nodeId, edge.data)
+                        const newMessages = new Map(edge.data?.messages);
+                        newMessages.set(update.id,{t: 0, id: update.id, direction: update.direction});
+                        edge.data = {messages : newMessages, latency: edge.data.latency}
                     }
     
                     return edge;
@@ -158,7 +153,8 @@ const useStore = create<RFState>((set, get) => ({
     tick: () => {
         const { nodes, edges, taskCounter, incrementTaskCounter } = get();
         const generators = nodes.filter(isSpawnNode);
-        const pipes = nodes.filter(isPipeNode);        
+        const pipes = nodes.filter(isPipeNode);
+        const endNodes = nodes.filter((node) => isEndNode(node));
 
         // If we have no generators, we don't need to do anything
         if (generators.length === 0) {
@@ -166,35 +162,64 @@ const useStore = create<RFState>((set, get) => ({
         }
 
         let updates : Update[] = []
-
+        console.log(nodes, edges)
         // for each node see if it has packets, increment the time and send the packets
         pipes.forEach((node) => {
             if(node.data.tasks.size > 0){
                 //Go through each task and increment the time, if the time is greater than the latency, delete the task from the map
                 node.data.tasks.forEach((task, taskId) => {
                     task.t += 1;
-                    if(task.t >= node.data.latency && task.status === TaskStatus.PROCESS_IN){                        
+                    if(task.t >= node.data.latency && task.status !== TaskStatus.WAITING){
+                        console.log("task", task)                                 
                         edges.forEach((edge) => {
-                            if(edge.source === node.id){                                
-                                updates.push({outId : edge.id, id: task.id})                                
+                            const matchingEdge = task.status === TaskStatus.PROCESS_IN ? edge.source : edge.target                            
+                            if(matchingEdge === node.id){                                
+                                console.log("pipe is updating", edge.id, task.id, task.status)
+                                const direction = task.status === TaskStatus.PROCESS_IN ? Direction.TARGET : Direction.SOURCE
+                                updates.push({outId : edge.id, id: task.id, direction})                                
                             }
-                        })                     
-                        node.data.tasks.set(taskId, {id: taskId, t: 0, status: TaskStatus.WAITING})
+                        })
+                        if(task.status === TaskStatus.PROCESS_IN){
+                            console.log("send out task", task)
+                            node.data.tasks.set(taskId, {id: taskId, t: 0, status: TaskStatus.WAITING})
+                        }else{
+                            console.log("deleting task", task)
+                            node.data.tasks.delete(taskId)
+                        }
+                        
                     }
                 });
             }
         })
 
         edges.forEach((edge) => {
-            if(edge.data && edge.data?.messages.length > 0){
+            if(edge.data && edge.data?.messages.size > 0){
                 // Go through each message and increment the time, if the time is greater than the latency, delete the message from the array
-                for(let i = 0; i < edge.data.messages.length; i++){
-                    edge.data.messages[i].t += 1
-                    if(edge.data.messages[i].t >= edge.data.latency){
-                        edge.data.messages.splice(i, 1)
-                        updates.push({outId : edge.target,  direction: Direction.DESTINATION,  id: i})
+                edge.data.messages.forEach((message, messageId) => {
+                    message.t += 1
+                    if(edge.data && message.t >= edge?.data.latency){
+                        edge.data.messages.delete(messageId)
+                        const outId = message.direction == Direction.SOURCE ? edge.source : edge.target
+                        updates.push({outId, id: messageId})
                     }
-                }
+
+                })                
+            }
+        })
+
+        endNodes.forEach((node) => {
+            if(node.data.tasks.size > 0){
+                node.data.tasks.forEach((task, taskId) => {
+                    task.t += 1;                    
+                    if(task.t >= 1){                        
+                        edges.forEach((edge) => {
+                            if(edge.source === node.id){                                
+                                updates.push({outId : edge.id, id: task.id, direction: Direction.SOURCE})                                
+                            }
+                        })                                  
+                        node.data.tasks.delete(taskId)
+                    }
+                });
             }
         })
 
@@ -205,7 +230,7 @@ const useStore = create<RFState>((set, get) => ({
             edges.forEach((edge) => {
                 if(edge.source === generator.id){
                     for( let i = 0 ; i < spawnRate; i++){
-                        updates.push({outId : edge.id, id : taskCounter, isNode : false})                        
+                        updates.push({outId : edge.id, id : taskCounter, direction: Direction.TARGET})                        
                         incrementTaskCounter()
                     }                    
                 }

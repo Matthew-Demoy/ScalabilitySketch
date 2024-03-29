@@ -1,8 +1,8 @@
 export enum Direction {
-    DESTINATION,
+    TARGET,
     SOURCE
 }
-interface Message {
+export interface Message {
     direction : Direction
     id : number
     t : number
