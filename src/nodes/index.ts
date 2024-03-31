@@ -10,19 +10,19 @@ export default [
     id: '1',
     type: 'faucet',
     data: spawnNodeData,
-    position: { x: 250, y: 25 },
+    position: { x: 0, y: -100 },
   },
 
   {
     id: '2',
     type: 'pipe',
     data: pipeNodeData,
-    position: { x: 100, y: 125 },
+    position: { x: 0, y: 125 },
   },
   {
     id: '3',
     type: 'end',
     data: endNodeData,
-    position: { x: 250, y: 250 },
+    position: { x: 0, y: 450 },
   },
 ] as Node[];

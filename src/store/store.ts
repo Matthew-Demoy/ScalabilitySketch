@@ -126,11 +126,9 @@ const useStore = create<RFState>((set, get) => ({
                 return node;
             }),
         });}else{
-            console.log("update for edge", update)
             set({
                 edges: get().edges.map((edge) => {
                     if (edge.id === nodeId && edge.data !== undefined) {
-                        console.log("add new message", nodeId, edge.data)
                         const newMessages = new Map(edge.data?.messages);
                         newMessages.set(update.id,{t: 0, id: update.id, direction: update.direction});
                         edge.data = {messages : newMessages, latency: edge.data.latency}
@@ -202,13 +200,14 @@ const useStore = create<RFState>((set, get) => ({
             }
         })
 
+        console.log(nodes,edges)
         endNodes.forEach((node) => {
             if(node.data.tasks.size > 0){
                 node.data.tasks.forEach((task, taskId) => {
                     task.t += 1;                    
                     if(task.t >= 1){                        
                         edges.forEach((edge) => {
-                            if(edge.source === node.id){                                
+                            if(edge.target === node.id){                                
                                 updates.push({outId : edge.id, id: task.id, direction: Direction.SOURCE})                                
                             }
                         })                                  

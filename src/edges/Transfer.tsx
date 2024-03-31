@@ -1,6 +1,6 @@
 import React, { FC } from 'react';
 import { EdgeProps, getBezierPath, EdgeLabelRenderer, BaseEdge } from 'reactflow';
-import { EdgeData } from './types';
+import { Direction, EdgeData } from './types';
 
 const Transfer: FC<EdgeProps<EdgeData>> = ({
   id,
@@ -30,9 +30,14 @@ const Transfer: FC<EdgeProps<EdgeData>> = ({
   data?.messages.forEach((message, messageId) => {
       
       const progress = message.t / latency
-  
-      const x = sourceX + (targetX - sourceX) * progress
-      const y = sourceY + (targetY - sourceY) * progress
+    
+      const color = message.direction == Direction.TARGET ? '#ffcc00' : 'red';
+      const position = message.direction == Direction.TARGET ? "140" : "0";
+
+
+      //const x = message.direction == Direction.TARGET ? sourceX + (targetX - sourceX) * progress : sourceX + (targetX - sourceX) * (1 - progress);
+      const x = message.direction == Direction.TARGET ? sourceX + (targetX - sourceX) * progress : sourceX + (targetX - sourceX) * (1 - progress)
+      const y =  message.direction == Direction.TARGET ? sourceY + (targetY - sourceY) * progress : sourceY + (targetY - sourceY) * (1 - progress )
   
       messages.push(
           <EdgeLabelRenderer
@@ -40,8 +45,8 @@ const Transfer: FC<EdgeProps<EdgeData>> = ({
           <div
             style={{
               position: 'absolute',
-              transform: `translate(-50%, -50%) translate(${x}px,${y}px)`,
-              background: '#ffcc00',
+              transform: `translate(-${position}%, -50%) translate(${x}px,${y}px)`,
+              background: color,
               padding: 10,
               borderRadius: 5,
               fontSize: 12,
