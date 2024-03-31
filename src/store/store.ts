@@ -15,51 +15,33 @@ import {
 
 import initialNodes from '../nodes/index';
 import initialEdges from '../edges/index';
+import { NodeData, SpawnNodeData, TaskStatus, isEndNode, isPipeNode, isSpawnNode } from '../nodes/types';
+import { Direction, EdgeData } from '../edges/types';
 
 interface Packet {
     t : number
-}
-interface Common {
-    packets : Packet[]
-}
-interface SpawnNodeData extends Common {
-    spawnRate: number
-}
-
-type SpawnNode = Node<SpawnNodeData>;
-
-const isSpawnNode = (node: Node<NodeData>): node is SpawnNode => {
-    return node.type === 'faucet';
-};
-
-interface PipeData extends Common{
-    rate: number
-    latency: number
-}
-type PipeNode = Node<PipeData>;
-
-const isPipeNode = (node: Node<NodeData>): node is PipeNode => {
-    return node.type === 'pipe';
-};
-
-interface EndNodeData extends Common {
-    total: number
+    id: number
 }
 
 
-export interface EdgeData extends Common { 
-    latency : number
-}
-
-interface Update {
+interface UpdateCommon {
     outId: string;
-    data: Packet
-    isNode : boolean
+    id: number;
 }
 
-export type NodeData = SpawnNodeData | PipeData | EndNodeData
+interface UpdateNode extends UpdateCommon {}
+interface UpdateEdge extends UpdateCommon {
+    direction: Direction
+}
+type Update = UpdateNode | UpdateEdge;
+
+//typeguard for is updateEdge
+function isUpdateEdge(update: Update): update is UpdateEdge {
+    return (update as UpdateEdge).direction !== undefined;
+}
 
 export type RFState = {
+    taskCounter: number;
     nodes: Node<NodeData>[];
     edges: Edge<EdgeData>[];
     isRunning: boolean;
@@ -71,16 +53,17 @@ export type RFState = {
     setEdges: (edges: Edge[]) => void;
     updateSpawnRate: (nodeId: string, rate: number) => void;
     updateMultiplier: (nodeId: string, rate: number) => void;
-    updateRecived: (nodeId: string, recieved: number) => void;
     startSimulation: () => void;
     resetSimulation: () => void;
     tick: () => void;
-    recievePacket: (nodeId: string, packet: Packet, isNode : boolean) => void;
+    recievePacket: (update : Update) => void;
+    incrementTaskCounter: () => void;
     
 };
 
 // this is our useStore hook that we can use in our components to get parts of the store and call actions
 const useStore = create<RFState>((set, get) => ({
+    taskCounter: 0,
     nodes: initialNodes,
     edges: initialEdges,
     isRunning: false,
@@ -128,32 +111,27 @@ const useStore = create<RFState>((set, get) => ({
             }),
         });
     },
-    updateRecived: (nodeId: string, recieved: number) => {
-        set({
-            nodes: get().nodes.map((node) => {
-                if (node.id === nodeId) {
-                    node.data = { ...node.data, total: recieved + node.data.total };
-                }
-
-                return node;
-            }),
-        });
-    },
-    recievePacket: (nodeId: string, packet: Packet, isNode : boolean) => {
-        if(isNode){
+    recievePacket: (update : Update) => {
+        const { outId : nodeId } = update
+        if(!isUpdateEdge(update)){
             set({
-            nodes: get().nodes.map((node) => {
+            nodes: get().nodes.map((node) => {                             
                 if (node.id === nodeId) {
-                    node.data = { ...node.data, packets: [packet, ...node.data.packets] };
+                    let status = node.data.tasks.get(update.id)?.status || TaskStatus.PROCESS_IN
+                    status = status == TaskStatus.WAITING ? TaskStatus.PROCESS_OUT : status
+                    const newTasks = new Map(node.data.tasks);
+                    newTasks.set(update.id, {id: update.id, t: 0, status});
+                    node.data.tasks = newTasks;
                 }
-
                 return node;
             }),
         });}else{
             set({
                 edges: get().edges.map((edge) => {
-                    if (edge.id === nodeId) {
-                        edge.data = { ...edge.data, packets: [...edge.data.packets, packet] };
+                    if (edge.id === nodeId && edge.data !== undefined) {
+                        const newMessages = new Map(edge.data?.messages);
+                        newMessages.set(update.id,{t: 0, id: update.id, direction: update.direction});
+                        edge.data = {messages : newMessages, latency: edge.data.latency}
                     }
     
                     return edge;
@@ -167,10 +145,14 @@ const useStore = create<RFState>((set, get) => ({
     resetSimulation: () => {
         set({ isRunning: false });
     },
+    incrementTaskCounter: () => {
+        set((state) => ({ taskCounter: state.taskCounter + 1 }));
+    },
     tick: () => {
-        const { nodes, edges } = get();
+        const { nodes, edges, taskCounter, incrementTaskCounter } = get();
         const generators = nodes.filter(isSpawnNode);
-        const pipes = nodes.filter(isPipeNode);        
+        const pipes = nodes.filter(isPipeNode);
+        const endNodes = nodes.filter((node) => isEndNode(node));
 
         // If we have no generators, we don't need to do anything
         if (generators.length === 0) {
@@ -178,46 +160,72 @@ const useStore = create<RFState>((set, get) => ({
         }
 
         let updates : Update[] = []
-
         // for each node see if it has packets, increment the time and send the packets
         pipes.forEach((node) => {
-            if(node.data.packets.length > 0){
-                //Go through each packet and increment the time, if the time is greater than the latency, delete the packet form the array
-                for(let i = 0; i < node.data.packets.length; i++){
-                    node.data.packets[i].t += 1
-                    if(node.data.packets[i].t >= node.data.latency){                        
+            if(node.data.tasks.size > 0){
+                //Go through each task and increment the time, if the time is greater than the latency, delete the task from the map
+                node.data.tasks.forEach((task, taskId) => {
+                    task.t += 1;
+                    if(task.t >= node.data.latency && task.status !== TaskStatus.WAITING){
                         edges.forEach((edge) => {
-                            if(edge.source === node.id){                                
-                                updates.push({outId : edge.id, data : {t : 0}, isNode : false})                                
+                            const matchingEdge = task.status === TaskStatus.PROCESS_IN ? edge.source : edge.target                            
+                            if(matchingEdge === node.id){                                
+                                const direction = task.status === TaskStatus.PROCESS_IN ? Direction.TARGET : Direction.SOURCE
+                                updates.push({outId : edge.id, id: task.id, direction})                                
                             }
                         })
-                        node.data.packets.splice(i, 1)                        
+                        if(task.status === TaskStatus.PROCESS_IN){
+                            node.data.tasks.set(taskId, {id: taskId, t: 0, status: TaskStatus.WAITING})
+                        }else{
+                            node.data.tasks.delete(taskId)
+                        }
+                        
                     }
-                }
+                });
             }
         })
 
         edges.forEach((edge) => {
-            if(edge.data && edge.data?.packets.length > 0){
-                //Go through each packet and increment the time, if the time is greater than the latency, delete the packet form the array
-                for(let i = 0; i < edge.data.packets.length; i++){
-                    edge.data.packets[i].t += 1
-                    if(edge.data.packets[i].t >= edge.data.latency){
-                        edge.data.packets.splice(i, 1)
-                        updates.push({outId : edge.target, data : {t : 0}, isNode : true})
+            if(edge.data && edge.data?.messages.size > 0){
+                // Go through each message and increment the time, if the time is greater than the latency, delete the message from the array
+                edge.data.messages.forEach((message, messageId) => {
+                    message.t += 1
+                    if(edge.data && message.t >= edge?.data.latency){
+                        edge.data.messages.delete(messageId)
+                        const outId = message.direction == Direction.SOURCE ? edge.source : edge.target
+                        updates.push({outId, id: messageId})
                     }
-                }
+
+                })                
+            }
+        })
+
+        console.log(nodes,edges)
+        endNodes.forEach((node) => {
+            if(node.data.tasks.size > 0){
+                node.data.tasks.forEach((task, taskId) => {
+                    task.t += 1;                    
+                    if(task.t >= 1){                        
+                        edges.forEach((edge) => {
+                            if(edge.target === node.id){                                
+                                updates.push({outId : edge.id, id: task.id, direction: Direction.SOURCE})                                
+                            }
+                        })                                  
+                        node.data.tasks.delete(taskId)
+                    }
+                });
             }
         })
 
         // For each generator, we want to generate items
         generators.forEach((generator) => {
             const spawnRate = (generator.data as SpawnNodeData).spawnRate;
-
+            
             edges.forEach((edge) => {
                 if(edge.source === generator.id){
                     for( let i = 0 ; i < spawnRate; i++){
-                        updates.push({outId : edge.id, data : {t : 0}, isNode : false})
+                        updates.push({outId : edge.id, id : taskCounter, direction: Direction.TARGET})                        
+                        incrementTaskCounter()
                     }                    
                 }
             })
@@ -225,7 +233,7 @@ const useStore = create<RFState>((set, get) => ({
 
         
         updates.forEach((update) => {
-            get().recievePacket(update.outId, update.data, update.isNode)
+            get().recievePacket(update)
         })
     }
 

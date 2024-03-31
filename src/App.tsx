@@ -6,9 +6,9 @@ import './index.css'
 
 import useStore from './store/store';
 import ColorChooserNode from './nodes/ColorChooserNode';
-import FaucetNode from './nodes/FaucetNode';
-import PipeNode from './nodes/PipeNode';
-import EndNode from './nodes/EndNode';
+import FaucetNode from './nodes/Client';
+import PipeNode from './nodes/Server';
+import EndNode from './nodes/Database';
 import { useEffect } from 'react';
 import Transfer from './edges/Transfer';
 
