@@ -1,6 +1,7 @@
 import React, { FC } from 'react';
 import { EdgeProps, getBezierPath, EdgeLabelRenderer, BaseEdge } from 'reactflow';
 import { Direction, EdgeData } from './types';
+import { Component, TemplateLibrary } from '../nodes/types';
 
 const Transfer: FC<EdgeProps<EdgeData>> = ({
   id,
@@ -21,14 +22,14 @@ const Transfer: FC<EdgeProps<EdgeData>> = ({
     targetPosition,
   });
 
- 
-  const latency = data.latency
   
   let messages : any = [];
-
+  
   
   data?.messages.forEach((message, messageId) => {
-      
+    
+      const latency = TemplateLibrary.get(message.templateName)?.get(message.direction == Direction.TARGET ? Component.CLIENT_CALL : Component.SERVER_RESPONSE)?.time || 0
+
       const progress = message.t / latency
     
       const color = message.direction == Direction.TARGET ? '#ffcc00' : 'red';

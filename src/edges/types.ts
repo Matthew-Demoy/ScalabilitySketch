@@ -6,6 +6,7 @@ export interface Message {
     direction : Direction
     id : number
     t : number
+    templateName : string
 }
 
 export interface EdgeData {
