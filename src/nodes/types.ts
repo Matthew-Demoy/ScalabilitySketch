@@ -1,6 +1,7 @@
 import {    
     Node,    
 } from 'reactflow';
+import { TimeScale } from '../core/time';
 
 
 export enum TaskStatus {
@@ -34,11 +35,11 @@ type TaskData = Map<Component, TaskMetadata>
 type TaskLibrary = Map<string, TaskData>
 
 const addUser: TaskData = new Map([
-    [Component.DATABASE, { storage: 100, time: 10 }],
-    [Component.SERVER, { time: 1 }],
-    [Component.CLIENT_CALL, { time: 10 }],
-    [Component.SERVER_RESPONSE, { time: 10 }],
-    [Component.DATABASE_RESPONSE, { time: 10 }]
+    [Component.DATABASE, { storage: 100, time: 10 * TimeScale.MILLISECOND }],
+    [Component.SERVER, { time: 1 * TimeScale.MILLISECOND   }],
+    [Component.CLIENT_CALL, { time: 10 * TimeScale.MILLISECOND  }],
+    [Component.SERVER_RESPONSE, { time: 10  * TimeScale.MILLISECOND  }],
+    [Component.DATABASE_RESPONSE, { time: 10 * TimeScale.MILLISECOND  }]
 ]);
 
 export const TemplateLibrary : TaskLibrary = new Map<string, TaskData>(
@@ -64,38 +65,37 @@ interface NodeCommon {
     tasks : Map<number, Task>
     componentName : Component
 }
-interface SpawnNodeData extends NodeCommon {
+interface ClientData extends NodeCommon {
     spawnRate: number
 }
 
-type SpawnNode = Node<SpawnNodeData>;
+type Client = Node<ClientData>;
 
-const isSpawnNode = (node: Node<NodeData>): node is SpawnNode => {
-    return node.type === 'faucet';
+const isClient = (node: Node<NodeData>): node is Client => {
+    return node.type === 'client';
 };
 
-interface PipeData extends NodeCommon {
-    rate: number
+interface ServerData extends NodeCommon {
     latency: number    
 }
-type PipeNode = Node<PipeData>;
+type PipeNode = Node<ServerData>;
 
 const isPipeNode = (node: Node<NodeData>): node is PipeNode => {
-    return node.type === 'pipe';
+    return node.type === 'server';
 };
 
-interface EndNodeData extends NodeCommon {
+interface DatabaseData extends NodeCommon {
     total: number
 }
 
-type EndNode = Node<EndNodeData>;
+type EndNode = Node<DatabaseData>;
 
 const isEndNode = (node: Node<NodeData>): node is EndNode => {
-    return node.type === 'end';
+    return node.type === 'database';
 }
 
 
-export type NodeData = SpawnNodeData | PipeData | EndNodeData
+export type NodeData = ClientData | ServerData | DatabaseData
 
-export { isSpawnNode, isPipeNode, isEndNode };
-export type { SpawnNodeData, PipeData, EndNodeData, Task };
+export { isClient, isPipeNode, isEndNode };
+export type { ClientData, ServerData, DatabaseData, Task };

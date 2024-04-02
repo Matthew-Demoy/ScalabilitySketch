@@ -1,24 +1,23 @@
 import React from 'react';
 import { Handle, NodeProps, Position } from 'reactflow';
 
-import useStore, { NodeData } from '../store/store';
+import useStore from '../store/store';
+import { ClientData } from './types';
 
-function FaucetNode({ id, data }: NodeProps<NodeData>) {
+function FaucetNode({ id, data }: NodeProps<ClientData>) {
   
 
   const updateSpawnRate = useStore((state) => state.updateSpawnRate);
 
+  const [infoOpen, setInfoOpen] = React.useState(false);
+  
+  const handleOpenClick = () => {
+    setInfoOpen(!infoOpen);
+  }
+
   return (
-    <div>
-      <Handle type="target" position={Position.Top} />
-      <div style={{ padding: 20 }}>
-        <input
-          type="text"
-          defaultValue={data.spawnRate}
-          onChange={(evt) => updateSpawnRate(id, evt.target.value)}
-          className="nodrag"
-        />
-      </div>
+    <div className='componentBorder'>
+        Client
       <Handle type="source" position={Position.Bottom} />
     </div>
   );

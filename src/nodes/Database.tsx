@@ -1,17 +1,14 @@
 import { Handle, NodeProps, Position } from 'reactflow';
 import { NodeData } from './types';
 
-function EndNode({ id, data }: NodeProps<NodeData>) {
+function Database({ id, data }: NodeProps<NodeData>) {
 
   return (
-    <div>
+    <div className={'componentBorder'}>
       <Handle type="target" position={Position.Top} />
-      <div style={{ padding: 20 }}>
-        recieved {data.tasks.size} packets
-      </div>
-      <Handle type="source" position={Position.Bottom} />
+      Database
     </div>
   );
 }
 
-export default EndNode;
+export default Database;

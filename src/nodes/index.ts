@@ -1,27 +1,39 @@
 import { Node } from 'reactflow';
-import { SpawnNodeData, PipeData, EndNodeData } from './types';
+import { ClientData, Component, DatabaseData, ServerData } from './types';
+import { TimeScale } from '../core/time';
 
-const spawnNodeData : SpawnNodeData =  { spawnRate: 1, tasks: new Map()}
-const pipeNodeData : PipeData = { rate: 1, latency : 1,  tasks: new Map()}
-const endNodeData : EndNodeData = { total: 0,  tasks: new Map()}
+const spawnNodeData : ClientData =  {
+  spawnRate: 86400000000, tasks: new Map(),
+  componentName: Component.CLIENT_CALL
+}
+const pipeNodeData : ServerData = {
+  tasks: new Map(),
+  componentName: Component.SERVER,
+  latency: 50 * TimeScale.MICROSECOND
+}
+const endNodeData : DatabaseData = {
+  tasks: new Map(),
+  componentName: Component.DATABASE,
+  total: 0
+}
 
 export default [
   {
     id: '1',
-    type: 'faucet',
+    type: 'client',
     data: spawnNodeData,
     position: { x: 0, y: -100 },
   },
 
   {
     id: '2',
-    type: 'pipe',
+    type: 'server',
     data: pipeNodeData,
     position: { x: 0, y: 125 },
   },
   {
     id: '3',
-    type: 'end',
+    type: 'database',
     data: endNodeData,
     position: { x: 0, y: 450 },
   },

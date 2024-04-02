@@ -4,39 +4,42 @@ import ReactFlow from 'reactflow';
 import 'reactflow/dist/style.css';
 import './index.css'
 
-import useStore from './store/store';
-import ColorChooserNode from './nodes/ColorChooserNode';
-import FaucetNode from './nodes/Client';
-import PipeNode from './nodes/Server';
-import EndNode from './nodes/Database';
+import useStore, { RFState } from './store/store';
+import Client from './nodes/Client';
+import Server from './nodes/Server';
+import Database from './nodes/Database';
 import { useEffect } from 'react';
 import Transfer from './edges/Transfer';
+import { TimeScale, displayTime } from './core/time';
+import NodeInfoList from './components/nodesInfoList';
 
-const nodeTypes = { colorChooser: ColorChooserNode, faucet: FaucetNode, pipe: PipeNode, end: EndNode };
+const nodeTypes = { client : Client, server: Server, database: Database };
 const edgeTypes = {transfer: Transfer}
 
-const selector = (state) => ({
+const selector = (state : RFState) => ({
   nodes: state.nodes,
   edges: state.edges,
   onNodesChange: state.onNodesChange,
   onEdgesChange: state.onEdgesChange,
   onConnect: state.onConnect,
+  time: state.time,
+  setTimeScale: state.updateTimeScale,
+  timeScale : state.timeScale
 });
 
 function Flow() {
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect } = useStore(
+  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, time, setTimeScale, timeScale } = useStore(
     useShallow(selector),
   );
 
   const { isRunning, tick } = useStore()
 
-  //I want to call tick every second if isRunning is true
+  
   useEffect(() => {
     if (isRunning) {
       const intervalId = setInterval(() => {
-        // Call your Zustand action here
         tick();
-      }, 1000); // 10000 milliseconds = 10 seconds
+      }, 1); // 1000 milliseconds = 1 second
 
       // Clear the interval when the component is unmounted or when isRunning becomes false
       return () => clearInterval(intervalId);
@@ -49,9 +52,20 @@ function Flow() {
 
   return (
     <span>
-      {isRunning ? <button className={'stopButton'} onClick={() => useStore.getState().resetSimulation()}>Stop</button> 
-      : <button className={'startButton'} onClick={() => useStore.getState().startSimulation()}>Start</button>}
+      <div className={'buttonContainer'}>
+        Time : {displayTime(time)}
+        
+        <div>
+          <button disabled={timeScale == TimeScale.MICROSECOND} onClick={() => setTimeScale(TimeScale.MICROSECOND)} > .001X</button>
+          <button disabled={timeScale == TimeScale.MILLISECOND} onClick={() => setTimeScale(TimeScale.MILLISECOND)}> 1X</button>
+          <button disabled={timeScale == TimeScale.SECOND} onClick={() => setTimeScale(TimeScale.SECOND)}> 1000X</button>
+        </div>
 
+        {isRunning ? <button className={'stopButton'} onClick={() => useStore.getState().resetSimulation()}>Stop</button> 
+        : <button className={'startButton'} onClick={() => useStore.getState().startSimulation()}>Start</button>}
+
+        {NodeInfoList({nodes : nodes})}
+      </div>
       <ReactFlow
         nodes={nodes}
         edges={edges}

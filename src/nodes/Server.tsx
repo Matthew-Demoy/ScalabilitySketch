@@ -1,27 +1,19 @@
 import { Handle, NodeProps, Position } from 'reactflow';
-
+import '../index.css'
 import useStore from '../store/store';
-import { PipeData } from './types';
+import { ServerData } from './types';
 
-function PipeNode({ id, data }: NodeProps<PipeData>) {
+function Server({ id, data }: NodeProps<ServerData>) {
   
 
   const updateMultiplier = useStore((state) => state.updateMultiplier);
 
   return (
-    <div>
+    <div className='componentBorder'>
       <Handle type="target" position={Position.Top} />
-      <div style={{ padding: 20 }}>
-        <input
-          type="text"
-          defaultValue={data.rate}
-          onChange={(evt) => updateMultiplier(id, parseInt(evt.target.value))}
-          className="nodrag"
-        />
-      </div>
+        Server
       <Handle type="source" position={Position.Bottom} />
-    </div>
-  );
+    </div>  );
 }
 
-export default PipeNode;
+export default Server;

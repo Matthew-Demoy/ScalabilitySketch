@@ -15,8 +15,9 @@ import {
 
 import initialNodes from '../nodes/index';
 import initialEdges from '../edges/index';
-import { AddUser, Component, NodeData, SpawnNodeData, TaskStatus, TemplateLibrary, isEndNode, isPipeNode, isSpawnNode } from '../nodes/types';
+import { AddUser, ClientData, Component, NodeData, TaskStatus, TemplateLibrary, isClient, isEndNode, isPipeNode } from '../nodes/types';
 import { Direction, EdgeData } from '../edges/types';
+import { TimeScale } from '../core/time';
 
 interface UpdateCommon {
     outId: string;
@@ -47,13 +48,14 @@ export type RFState = {
     setNodes: (nodes: Node[]) => void;
     setEdges: (edges: Edge[]) => void;
     updateSpawnRate: (nodeId: string, rate: number) => void;
-    updateMultiplier: (nodeId: string, rate: number) => void;
     startSimulation: () => void;
     resetSimulation: () => void;
     tick: () => void;
     recievePacket: (update: Update) => void;
     incrementTaskCounter: () => void;
-
+    time : number;
+    timeScale : TimeScale;
+    updateTimeScale: (scale : TimeScale) => void;
 };
 
 // this is our useStore hook that we can use in our components to get parts of the store and call actions
@@ -63,6 +65,8 @@ const useStore = create<RFState>((set, get) => ({
     edges: initialEdges,
     isRunning: false,
     generators: [],
+    time: 0,
+    timeScale: TimeScale.MILLISECOND,
     onNodesChange: (changes: NodeChange[]) => {
         set({
             nodes: applyNodeChanges(changes, get().nodes),
@@ -89,17 +93,6 @@ const useStore = create<RFState>((set, get) => ({
             nodes: get().nodes.map((node) => {
                 if (node.id === nodeId) {
                     node.data = { ...node.data, spawnRate };
-                }
-
-                return node;
-            }),
-        });
-    },
-    updateMultiplier: (nodeId: string, rate: number) => {
-        set({
-            nodes: get().nodes.map((node) => {
-                if (node.id === nodeId) {
-                    node.data = { ...node.data, rate };
                 }
 
                 return node;
@@ -144,24 +137,31 @@ const useStore = create<RFState>((set, get) => ({
     incrementTaskCounter: () => {
         set((state) => ({ taskCounter: state.taskCounter + 1 }));
     },
+    updateTimeScale: (scale: TimeScale) => {
+        set({ timeScale: scale });
+    },
     tick: () => {
-        const { nodes, edges, taskCounter, incrementTaskCounter } = get();
-        const generators = nodes.filter(isSpawnNode);
+        const { nodes, edges, taskCounter, incrementTaskCounter, time, timeScale } = get();
+        const generators = nodes.filter(isClient);
         const pipes = nodes.filter(isPipeNode);
-        const endNodes = nodes.filter((node) => isEndNode(node));
+        const endNodes = nodes.filter(isEndNode)
+
+        
+        set({ time: time + timeScale });
 
         // If we have no generators, we don't need to do anything
         if (generators.length === 0) {
             return;
         }
-
+        
+        console.log(nodes, edges)
         let updates: Update[] = []
         // for each node see if it has packets, increment the time and send the packets
         pipes.forEach((node) => {
             if (node.data.tasks.size > 0) {
                 //Go through each task and increment the time, if the time is greater than the latency, delete the task from the map
                 node.data.tasks.forEach((task, taskId) => {
-                    task.t += 1;
+                    task.t += timeScale;
                     const latency = TemplateLibrary.get(task.templateName)?.get(Component.SERVER)?.time || 0
 
                     if (task.t >= latency && task.status !== TaskStatus.WAITING) {
@@ -187,7 +187,7 @@ const useStore = create<RFState>((set, get) => ({
             if (edge.data && edge.data?.messages.size > 0) {
                 // Go through each message and increment the time, if the time is greater than the latency, delete the message from the array
                 edge.data.messages.forEach((message, messageId) => {
-                    message.t += 1
+                    message.t += timeScale
                     const latency = TemplateLibrary.get(message.templateName)?.get(message.direction == Direction.TARGET ? Component.CLIENT_CALL : Component.SERVER_RESPONSE)?.time || 0
                     if (edge.data && message.t >= latency) {
                         edge.data.messages.delete(messageId)
@@ -202,7 +202,7 @@ const useStore = create<RFState>((set, get) => ({
         endNodes.forEach((node) => {
             if (node.data.tasks.size > 0) {
                 node.data.tasks.forEach((task, taskId) => {
-                    task.t += 1;
+                    task.t += timeScale;
                     const latency = TemplateLibrary.get(task.templateName)?.get(Component.DATABASE)?.time || 0
                     if (task.t >= latency) {
                         edges.forEach((edge) => {
@@ -210,6 +210,8 @@ const useStore = create<RFState>((set, get) => ({
                                 updates.push({ outId: edge.id, id: task.id, direction: Direction.SOURCE, templateName: task.templateName })
                             }
                         })
+                        const storage = TemplateLibrary.get(task.templateName)?.get(Component.DATABASE)?.storage || 0
+                        node.data.total + storage
                         node.data.tasks.delete(taskId)                        
                     }
                 });
@@ -218,11 +220,15 @@ const useStore = create<RFState>((set, get) => ({
 
         // For each generator, we want to generate items
         generators.forEach((generator) => {
-            const spawnRate = (generator.data as SpawnNodeData).spawnRate;
+            const dau = (generator.data as ClientData).spawnRate; // Assuming this is the DAU
 
+            const secondsPerDay = 24 * 60 * 60
+            const ticksPerDay = timeScale === TimeScale.MICROSECOND ? secondsPerDay * 1000000 : timeScale === TimeScale.MILLISECOND ? secondsPerDay * 1000 : secondsPerDay;
+            const spawnRatePerTick = dau / ticksPerDay;
             edges.forEach((edge) => {
                 if (edge.source === generator.id) {
-                    for (let i = 0; i < spawnRate; i++) {
+                    // Spawn a task with probability spawnRatePerTick
+                    if (Math.random() < spawnRatePerTick) {
                         updates.push({ outId: edge.id, id: taskCounter, direction: Direction.TARGET, templateName: AddUser })
                         incrementTaskCounter()
                     }
