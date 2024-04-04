@@ -3,7 +3,7 @@ import { ClientData, Component, DatabaseData, ServerData } from './types';
 import { TimeScale } from '../core/time';
 
 const spawnNodeData : ClientData =  {
-  spawnRate: 86400000000, tasks: new Map(),
+  spawnRate: 86400000000 / 1000 / 10, tasks: new Map(),
   componentName: Component.CLIENT
 }
 const pipeNodeData : ServerData = {
@@ -16,6 +16,7 @@ const endNodeData : DatabaseData = {
   componentName: Component.DATABASE,
   total: 0
 }
+
 
 export enum NodeType {
   CLIENT = 'client',
@@ -42,5 +43,36 @@ export default [
     type: NodeType.DATABASE,
     data: endNodeData,
     position: { x: 0, y: 450 },
+  },
+
+  {
+    id: '4',
+    type: NodeType.CLIENT,
+    data: {
+      spawnRate: 86400000000 / 1000 / 10, tasks: new Map(),
+      componentName: Component.CLIENT
+    },
+    position: { x: 200, y: -100 },
+  },
+
+  {
+    id: '5',
+    type: NodeType.SERVER,
+    data: {
+      tasks: new Map(),
+      componentName: Component.SERVER,
+      latency: 50 * TimeScale.MICROSECOND
+    },
+    position: { x: 200, y: 125 },
+  },
+  {
+    id: '6',
+    type: NodeType.DATABASE,
+    data: {
+      tasks: new Map(),
+      componentName: Component.DATABASE,
+      total: 0
+    },
+    position: { x: 200, y: 450 },
   },
 ] as Node[];

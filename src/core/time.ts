@@ -41,7 +41,7 @@ export function displayTime(time: number) {
     if (hours > 0) {
         result += `Hour : ${hours} : `;
     }
-    result += `Minute : ${minutes} : Second : ${seconds} : MS : ${milliseconds} : Microsecond : ${microseconds}`;
+    result += `Minute : ${minutes} : Second : ${seconds} : MS : ${milliseconds} : μs : ${microseconds}`;
 
     return result;
 }

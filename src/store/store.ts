@@ -15,7 +15,7 @@ import {
 
 import initialNodes from '../nodes/index';
 import initialEdges from '../edges/index';
-import { AddUser, ClientData, Component, NodeData, TaskStatus, TemplateLibrary, isClient, isEndNode, isPipeNode } from '../nodes/types';
+import { AddUser, ClientData, Component, NodeData, TaskLibrary, TaskStatus, TemplateLibrary, isClient, isEndNode, isPipeNode } from '../nodes/types';
 import { Direction, EdgeData, Message } from '../edges/types';
 import { TimeScale } from '../core/time';
 
@@ -25,7 +25,9 @@ interface UpdateCommon {
     templateName: string;
 }
 
-interface UpdateNode extends UpdateCommon { }
+interface UpdateNode extends UpdateCommon {
+    creatingId : string
+}
 interface UpdateEdge extends UpdateCommon {
     direction: Direction
 }
@@ -56,6 +58,8 @@ export type RFState = {
     time : number;
     timeScale : TimeScale;
     updateTimeScale: (scale : TimeScale) => void;
+    taskLibrary : TaskLibrary;
+    modifyTasks : (updatedLibrary : TaskLibrary) => void;
 };
 
 // this is our useStore hook that we can use in our components to get parts of the store and call actions
@@ -67,6 +71,12 @@ const useStore = create<RFState>((set, get) => ({
     generators: [],
     time: 0,
     timeScale: TimeScale.MILLISECOND,
+    taskLibrary : TemplateLibrary,
+    modifyTasks : (updatedLibrary : TaskLibrary) => {
+        set({
+            taskLibrary : updatedLibrary
+        })
+    },
     onNodesChange: (changes: NodeChange[]) => {
         set({
             nodes: applyNodeChanges(changes, get().nodes),
@@ -111,13 +121,17 @@ const useStore = create<RFState>((set, get) => ({
     recievePacket: (update: Update) => {
         const { outId: nodeId, templateName } = update
         if (!isUpdateEdge(update)) {
+            
             set({
                 nodes: get().nodes.map((node) => {
                     if (node.id === nodeId) {
                         let status = node.data.tasks.get(update.id)?.status || TaskStatus.PROCESS_IN
                         status = status == TaskStatus.WAITING ? TaskStatus.PROCESS_OUT : status
                         const newTasks = new Map(node.data.tasks);
-                        newTasks.set(update.id, { id: update.id, t: 0, status, templateName });
+
+                        const existingTask = newTasks.get(update.id)
+
+                        newTasks.set(update.id, { id: update.id, t: 0, status, templateName, callingEdge: existingTask ? existingTask.callingEdge : update.creatingId});
                         node.data.tasks = newTasks;
                     }
                     return node;
@@ -150,7 +164,7 @@ const useStore = create<RFState>((set, get) => ({
         set({ timeScale: scale });
     },
     tick: () => {
-        const { nodes, edges, taskCounter, incrementTaskCounter, time, timeScale } = get();
+        const { nodes, edges, taskCounter, incrementTaskCounter, time, timeScale, taskLibrary } = get();
         const generators = nodes.filter(isClient);
         const pipes = nodes.filter(isPipeNode);
         const endNodes = nodes.filter(isEndNode)
@@ -171,18 +185,19 @@ const useStore = create<RFState>((set, get) => ({
                 //Go through each task and increment the time, if the time is greater than the latency, delete the task from the map
                 node.data.tasks.forEach((task, taskId) => {
                     task.t += timeScale;
-                    const latency = TemplateLibrary.get(task.templateName)?.get(Component.SERVER)?.time || 0
+                    const latency = taskLibrary.get(task.templateName)?.get(Component.SERVER)?.time || 0
 
                     if (task.t >= latency && task.status !== TaskStatus.WAITING) {
-                        edges.forEach((edge) => {
-                            const matchingEdge = task.status === TaskStatus.PROCESS_IN ? edge.source : edge.target
-                            if (matchingEdge === node.id) {
+                        //For each task we want to send the message either to its target edges or the edge that requested the task
+                        edges.forEach((edge) => {                            
+                            const matchingEdge = task.status === TaskStatus.PROCESS_IN ? edge.source == node.id : edge.id === task.callingEdge                            
+                            if (matchingEdge) {
                                 const direction = task.status === TaskStatus.PROCESS_IN ? Direction.TARGET : Direction.SOURCE
                                 updates.push({ outId: edge.id, id: task.id, direction, templateName: task.templateName })
                             }
                         })
                         if (task.status === TaskStatus.PROCESS_IN) {
-                            node.data.tasks.set(taskId, { id: taskId, t: 0, status: TaskStatus.WAITING, templateName: task.templateName })
+                            node.data.tasks.set(taskId, { id: taskId, t: 0, status: TaskStatus.WAITING, templateName: task.templateName, callingEdge: task.callingEdge})
                         } else {
                             node.data.tasks.delete(taskId)
                         }
@@ -197,11 +212,11 @@ const useStore = create<RFState>((set, get) => ({
                 // Go through each message and increment the time, if the time is greater than the latency, delete the message from the array
                 edge.data.messages.forEach((message, messageId) => {
                     message.t += timeScale
-                    const latency = TemplateLibrary.get(message.templateName)?.get(message.direction == Direction.TARGET ? Component.CLIENT_CALL : Component.SERVER_RESPONSE)?.time || 0
+                    const latency = taskLibrary.get(message.templateName)?.get(message.direction == Direction.TARGET ? Component.CLIENT_CALL : Component.SERVER_RESPONSE)?.time || 0
                     if (edge.data && message.t >= latency) {
                         edge.data.messages.delete(messageId)
-                        const outId = message.direction == Direction.SOURCE ? edge.source : edge.target
-                        updates.push({ outId, id: messageId, templateName: message.templateName })
+                        const outId = message.direction == Direction.SOURCE ? edge.source : edge.target                        
+                        updates.push({ outId, id: messageId, creatingId : edge.id,  templateName: message.templateName })
                     }
 
                 })
@@ -212,14 +227,15 @@ const useStore = create<RFState>((set, get) => ({
             if (node.data.tasks.size > 0) {
                 node.data.tasks.forEach((task, taskId) => {
                     task.t += timeScale;
-                    const latency = TemplateLibrary.get(task.templateName)?.get(Component.DATABASE)?.time || 0
+                    const latency = taskLibrary.get(task.templateName)?.get(Component.DATABASE)?.time || 0
                     if (task.t >= latency) {
+
                         edges.forEach((edge) => {
-                            if (edge.target === node.id) {
+                            if (edge.id === task.callingEdge) {
                                 updates.push({ outId: edge.id, id: task.id, direction: Direction.SOURCE, templateName: task.templateName })
                             }
                         })
-                        const storage = TemplateLibrary.get(task.templateName)?.get(Component.DATABASE)?.storage || 0
+                        const storage = taskLibrary.get(task.templateName)?.get(Component.DATABASE)?.storage || 0
                         node.data.total += storage
                         node.data.tasks.delete(taskId)                        
                     }
@@ -238,7 +254,6 @@ const useStore = create<RFState>((set, get) => ({
                 if (edge.source === generator.id) {
                     // Spawn a task with probability spawnRatePerTick
                     if (Math.random() < spawnRatePerTick) {
-                        console.log("spawning task")
                         updates.push({ outId: edge.id, id: taskCounter, direction: Direction.TARGET, templateName: AddUser })
                         incrementTaskCounter()
                     }

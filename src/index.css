@@ -53,3 +53,36 @@ body,
   border: 1px solid #000;
 }
 
+
+.tasks-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 1rem;
+}
+
+.task {
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.task-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.component {
+  font-weight: bold;
+  margin-left: 1rem;
+}
+
+.data-entry {
+  
+  align-items: center;
+  margin-left: 2rem;
+}
+
+.data-entry label {
+  margin-right: 1rem;
+}

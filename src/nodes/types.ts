@@ -11,7 +11,7 @@ export enum TaskStatus {
     PROCESS_OUT
 }
 
-interface TaskMetadata {
+export interface TaskMetadata {
     // Effect of storage in bytes
     storage?: number,
     bandwidth?: number,
@@ -30,11 +30,12 @@ export enum Component {
 }
 
 export const AddUser = 'addUser'
+export const GetUser = 'getUser'
 
 
 type TaskData = Map<Component, TaskMetadata>
 
-type TaskLibrary = Map<string, TaskData>
+export type TaskLibrary = Map<string, TaskData>
 
 const addUser: TaskData = new Map([
     [Component.DATABASE, { storage: 100, time: 10 * TimeScale.MILLISECOND }],
@@ -44,9 +45,18 @@ const addUser: TaskData = new Map([
     [Component.DATABASE_RESPONSE, { time: 10 * TimeScale.MILLISECOND  }]
 ]);
 
+const getUser: TaskData = new Map([
+    [Component.DATABASE, { storage: 1, time: 1 * TimeScale.MILLISECOND }],
+    [Component.SERVER, { time: 1 * TimeScale.MILLISECOND   }],
+    [Component.CLIENT_CALL, { time: 10 * TimeScale.MILLISECOND  }],
+    [Component.SERVER_RESPONSE, { time: 10  * TimeScale.MILLISECOND  }],
+    [Component.DATABASE_RESPONSE, { time: 10 * TimeScale.MILLISECOND  }]
+]);
+
 export const TemplateLibrary : TaskLibrary = new Map<string, TaskData>(
     [
-        [AddUser, addUser]
+        [AddUser, addUser],
+        [GetUser, getUser]
     ]
 )
 
@@ -61,6 +71,7 @@ interface Task {
 
     //The name of the templated task to be looked up in the library
     templateName : string
+    callingEdge : string
 }
 
 interface NodeCommon {
