@@ -1,5 +1,5 @@
 import { useShallow } from 'zustand/react/shallow';
-import ReactFlow, { Connection, ReactFlowInstance, useReactFlow } from 'reactflow';
+import ReactFlow, { ReactFlowInstance } from 'reactflow';
 
 import 'reactflow/dist/style.css';
 import './index.css'
@@ -75,8 +75,6 @@ function Flow() {
 
   }
 
-
-
   return (
     <span>
       <div className={'buttonContainer'}>
@@ -91,7 +89,7 @@ function Flow() {
         {isRunning ? <button className={'stopButton'} onClick={() => useStore.getState().resetSimulation()}>Stop</button>
           : <button className={'startButton'} onClick={() => useStore.getState().startSimulation()}>Start</button>}
 
-        {NodeInfoList({ nodes: nodes })}
+        <NodeInfoList  nodes={nodes } />
         <AddComponent addComponent={(choice) => handleAddComponent(choice)} />
 
         <TaskView taskLibrary={taskLibrary} modifyTasks={modifyTasks} />
