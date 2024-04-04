@@ -62,7 +62,8 @@ function Flow() {
       type: choice,
       data: {
         componentName: choice,
-        tasks: new Map()
+        tasks: new Map(),
+        total : choice === Component.DATABASE ? 0 : undefined
       },
       position: { x : 1, y : 1 }
     }
