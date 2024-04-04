@@ -211,7 +211,7 @@ const useStore = create<RFState>((set, get) => ({
                             }
                         })
                         const storage = TemplateLibrary.get(task.templateName)?.get(Component.DATABASE)?.storage || 0
-                        node.data.total + storage
+                        node.data.total += storage
                         node.data.tasks.delete(taskId)                        
                     }
                 });
