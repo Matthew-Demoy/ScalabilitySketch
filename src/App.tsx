@@ -1,5 +1,5 @@
 import { useShallow } from 'zustand/react/shallow';
-import ReactFlow, { ReactFlowInstance, useReactFlow } from 'reactflow';
+import ReactFlow, { Connection, ReactFlowInstance, useReactFlow } from 'reactflow';
 
 import 'reactflow/dist/style.css';
 import './index.css'
@@ -55,7 +55,6 @@ function Flow() {
   const viewPort = reactFlowInstance?.getViewport()
   const x = viewPort?.x || 0
   const y = viewPort?.y || 0
-  console.log(nodes, edges)
   const handleAddComponent = (choice : Component) => {
 
     const component = {
@@ -71,8 +70,9 @@ function Flow() {
     setNodes([...nodes, component])
 
   }
-  //Every 10 seconds I want to call a zustand action that will have the faucet node shoot info
 
+
+  
   return (
     <span>
       <div className={'buttonContainer'}>
