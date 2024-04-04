@@ -16,7 +16,7 @@ import {
 import initialNodes from '../nodes/index';
 import initialEdges from '../edges/index';
 import { AddUser, ClientData, Component, NodeData, TaskStatus, TemplateLibrary, isClient, isEndNode, isPipeNode } from '../nodes/types';
-import { Direction, EdgeData } from '../edges/types';
+import { Direction, EdgeData, Message } from '../edges/types';
 import { TimeScale } from '../core/time';
 
 interface UpdateCommon {
@@ -78,14 +78,23 @@ const useStore = create<RFState>((set, get) => ({
         });
     },
     onConnect: (connection: Connection) => {
+        const edge : Edge<EdgeData> = {
+            id: `${connection.source}-${connection.target}-${get().edges.length}`,
+            source: connection.source ?? "",
+            target: connection.target ?? "",      
+            type: "transfer",
+            data: { messages: new Map<number, Message>(), latency : 2 * TimeScale.MILLISECOND},
+          }
+
         set({
-            edges: addEdge(connection, get().edges),
+            edges: addEdge(edge, get().edges),
         });
     },
     setNodes: (nodes: Node[]) => {
         set({ nodes });
     },
     setEdges: (edges: Edge[]) => {
+        console.log("setting edges")
         set({ edges });
     },
     updateSpawnRate: (nodeId: string, spawnRate: number) => {
@@ -229,6 +238,7 @@ const useStore = create<RFState>((set, get) => ({
                 if (edge.source === generator.id) {
                     // Spawn a task with probability spawnRatePerTick
                     if (Math.random() < spawnRatePerTick) {
+                        console.log("spawning task")
                         updates.push({ outId: edge.id, id: taskCounter, direction: Direction.TARGET, templateName: AddUser })
                         incrementTaskCounter()
                     }

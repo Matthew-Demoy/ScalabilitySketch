@@ -4,7 +4,7 @@ import { TimeScale } from '../core/time';
 
 const spawnNodeData : ClientData =  {
   spawnRate: 86400000000, tasks: new Map(),
-  componentName: Component.CLIENT_CALL
+  componentName: Component.CLIENT
 }
 const pipeNodeData : ServerData = {
   tasks: new Map(),
@@ -17,23 +17,29 @@ const endNodeData : DatabaseData = {
   total: 0
 }
 
+export enum NodeType {
+  CLIENT = 'client',
+  SERVER = 'server',
+  DATABASE = 'database'
+}
+
 export default [
   {
     id: '1',
-    type: 'client',
+    type: NodeType.CLIENT,
     data: spawnNodeData,
     position: { x: 0, y: -100 },
   },
 
   {
     id: '2',
-    type: 'server',
+    type: NodeType.SERVER,
     data: pipeNodeData,
     position: { x: 0, y: 125 },
   },
   {
     id: '3',
-    type: 'database',
+    type: NodeType.DATABASE,
     data: endNodeData,
     position: { x: 0, y: 450 },
   },
