@@ -55,11 +55,11 @@ function Flow() {
   const viewPort = reactFlowInstance?.getViewport()
   const x = viewPort?.x || 0
   const y = viewPort?.y || 0
-  console.log(x, y)
+  console.log(nodes, edges)
   const handleAddComponent = (choice : Component) => {
 
     const component = {
-      id: nodes.length.toString(),
+      id: (nodes.length + 1).toString(),
       type: choice,
       data: {
         componentName: choice,

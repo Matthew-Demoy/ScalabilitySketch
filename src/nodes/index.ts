@@ -17,7 +17,7 @@ const endNodeData : DatabaseData = {
   total: 0
 }
 
-enum NodeType {
+export enum NodeType {
   CLIENT = 'client',
   SERVER = 'server',
   DATABASE = 'database'

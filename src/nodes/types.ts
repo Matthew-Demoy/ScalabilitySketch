@@ -2,6 +2,7 @@ import {
     Node,    
 } from 'reactflow';
 import { TimeScale } from '../core/time';
+import { NodeType } from '.';
 
 
 export enum TaskStatus {
@@ -73,7 +74,7 @@ interface ClientData extends NodeCommon {
 type Client = Node<ClientData>;
 
 const isClient = (node: Node<NodeData>): node is Client => {
-    return node.type === 'client';
+    return node.type === NodeType.CLIENT;
 };
 
 interface ServerData extends NodeCommon {
@@ -82,7 +83,7 @@ interface ServerData extends NodeCommon {
 type PipeNode = Node<ServerData>;
 
 const isPipeNode = (node: Node<NodeData>): node is PipeNode => {
-    return node.type === 'server';
+    return node.type === NodeType.SERVER;
 };
 
 interface DatabaseData extends NodeCommon {
@@ -92,7 +93,7 @@ interface DatabaseData extends NodeCommon {
 type EndNode = Node<DatabaseData>;
 
 const isEndNode = (node: Node<NodeData>): node is EndNode => {
-    return node.type === 'database';
+    return node.type === NodeType.DATABASE;
 }
 
 

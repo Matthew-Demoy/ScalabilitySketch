@@ -1,19 +1,17 @@
-
-
 import React from 'react';
-import { Component } from '../nodes/types';
+import { NodeType } from '../nodes';
 
 
 interface AddComponentProps {
-  addComponent: (choice: Component) => void;
+  addComponent: (choice: NodeType) => void;
 }
 
 const AddComponent: React.FC<AddComponentProps> = ({ addComponent }) => {
   return (
     <div>
-      <button onClick={() => addComponent(Component.CLIENT_CALL)}>Client</button>
-      <button onClick={() => addComponent(Component.SERVER)}>Server</button>
-      <button onClick={() => addComponent(Component.DATABASE)}>Database</button>
+      <button onClick={() => addComponent(NodeType.CLIENT)}>Client</button>
+      <button onClick={() => addComponent(NodeType.SERVER)}>Server</button>
+      <button onClick={() => addComponent(NodeType.DATABASE)}>Database</button>
     </div>
   );
 };
