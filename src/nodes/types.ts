@@ -20,11 +20,12 @@ interface TaskMetadata {
 }
 
 export enum Component {
-    DATABASE,
-    SERVER,
-    CLIENT_CALL,
-    SERVER_RESPONSE,
-    DATABASE_RESPONSE
+    DATABASE = 'database',
+    SERVER = 'server',
+    CLIENT_CALL = 'client_call',
+    SERVER_RESPONSE = 'server_response',
+    DATABASE_RESPONSE = 'database_response',
+    CLIENT = 'client'
 }
 
 export const AddUser = 'addUser'

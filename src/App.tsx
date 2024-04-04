@@ -1,5 +1,5 @@
 import { useShallow } from 'zustand/react/shallow';
-import ReactFlow from 'reactflow';
+import ReactFlow, { ReactFlowInstance, useReactFlow } from 'reactflow';
 
 import 'reactflow/dist/style.css';
 import './index.css'
@@ -8,10 +8,12 @@ import useStore, { RFState } from './store/store';
 import Client from './nodes/Client';
 import Server from './nodes/Server';
 import Database from './nodes/Database';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Transfer from './edges/Transfer';
 import { TimeScale, displayTime } from './core/time';
 import NodeInfoList from './components/nodesInfoList';
+import AddComponent from './components/addComponent';
+import { Component } from './nodes/types';
 
 const nodeTypes = { client : Client, server: Server, database: Database };
 const edgeTypes = {transfer: Transfer}
@@ -24,17 +26,22 @@ const selector = (state : RFState) => ({
   onConnect: state.onConnect,
   time: state.time,
   setTimeScale: state.updateTimeScale,
-  timeScale : state.timeScale
+  timeScale : state.timeScale,
+  setNodes : state.setNodes,
 });
 
 function Flow() {
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, time, setTimeScale, timeScale } = useStore(
+  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, time, setTimeScale, timeScale, setNodes } = useStore(
     useShallow(selector),
   );
 
   const { isRunning, tick } = useStore()
-
   
+  const [reactFlowInstance, setReactFlowInstance] = useState(null as ReactFlowInstance | null);
+
+
+  const onInit = (instance : ReactFlowInstance) => { setReactFlowInstance(instance) }
+
   useEffect(() => {
     if (isRunning) {
       const intervalId = setInterval(() => {
@@ -45,9 +52,25 @@ function Flow() {
       return () => clearInterval(intervalId);
     }
   }, [isRunning])
+  const viewPort = reactFlowInstance?.getViewport()
+  const x = viewPort?.x || 0
+  const y = viewPort?.y || 0
+  console.log(x, y)
+  const handleAddComponent = (choice : Component) => {
 
-  
+    const component = {
+      id: nodes.length.toString(),
+      type: choice,
+      data: {
+        componentName: choice,
+        tasks: new Map()
+      },
+      position: { x : 1, y : 1 }
+    }
 
+    setNodes([...nodes, component])
+
+  }
   //Every 10 seconds I want to call a zustand action that will have the faucet node shoot info
 
   return (
@@ -65,6 +88,7 @@ function Flow() {
         : <button className={'startButton'} onClick={() => useStore.getState().startSimulation()}>Start</button>}
 
         {NodeInfoList({nodes : nodes})}
+        <AddComponent addComponent={(choice) => handleAddComponent(choice)} />
       </div>
       <ReactFlow
         nodes={nodes}
@@ -74,6 +98,7 @@ function Flow() {
         onConnect={onConnect}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
+        onInit={onInit}
         fitView
       />
     </span>
