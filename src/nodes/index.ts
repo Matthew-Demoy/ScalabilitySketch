@@ -3,7 +3,7 @@ import { ClientData, Component, DatabaseData, ServerData } from './types';
 import { TimeScale } from '../core/time';
 
 const spawnNodeData : ClientData =  {
-  spawnRate: 86400000000, tasks: new Map(),
+  spawnRate: 86400000000 / 1000 / 10, tasks: new Map(),
   componentName: Component.CLIENT
 }
 const pipeNodeData : ServerData = {

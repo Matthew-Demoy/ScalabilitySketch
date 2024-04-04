@@ -11,7 +11,7 @@ export enum TaskStatus {
     PROCESS_OUT
 }
 
-interface TaskMetadata {
+export interface TaskMetadata {
     // Effect of storage in bytes
     storage?: number,
     bandwidth?: number,
@@ -34,7 +34,7 @@ export const AddUser = 'addUser'
 
 type TaskData = Map<Component, TaskMetadata>
 
-type TaskLibrary = Map<string, TaskData>
+export type TaskLibrary = Map<string, TaskData>
 
 const addUser: TaskData = new Map([
     [Component.DATABASE, { storage: 100, time: 10 * TimeScale.MILLISECOND }],

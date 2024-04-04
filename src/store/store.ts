@@ -15,7 +15,7 @@ import {
 
 import initialNodes from '../nodes/index';
 import initialEdges from '../edges/index';
-import { AddUser, ClientData, Component, NodeData, TaskStatus, TemplateLibrary, isClient, isEndNode, isPipeNode } from '../nodes/types';
+import { AddUser, ClientData, Component, NodeData, TaskLibrary, TaskStatus, TemplateLibrary, isClient, isEndNode, isPipeNode } from '../nodes/types';
 import { Direction, EdgeData, Message } from '../edges/types';
 import { TimeScale } from '../core/time';
 
@@ -56,6 +56,8 @@ export type RFState = {
     time : number;
     timeScale : TimeScale;
     updateTimeScale: (scale : TimeScale) => void;
+    taskLibrary : TaskLibrary;
+    modifyTasks : (updatedLibrary : TaskLibrary) => void;
 };
 
 // this is our useStore hook that we can use in our components to get parts of the store and call actions
@@ -67,6 +69,12 @@ const useStore = create<RFState>((set, get) => ({
     generators: [],
     time: 0,
     timeScale: TimeScale.MILLISECOND,
+    taskLibrary : TemplateLibrary,
+    modifyTasks : (updatedLibrary : TaskLibrary) => {
+        set({
+            taskLibrary : updatedLibrary
+        })
+    },
     onNodesChange: (changes: NodeChange[]) => {
         set({
             nodes: applyNodeChanges(changes, get().nodes),
@@ -150,7 +158,7 @@ const useStore = create<RFState>((set, get) => ({
         set({ timeScale: scale });
     },
     tick: () => {
-        const { nodes, edges, taskCounter, incrementTaskCounter, time, timeScale } = get();
+        const { nodes, edges, taskCounter, incrementTaskCounter, time, timeScale, taskLibrary } = get();
         const generators = nodes.filter(isClient);
         const pipes = nodes.filter(isPipeNode);
         const endNodes = nodes.filter(isEndNode)
@@ -171,7 +179,7 @@ const useStore = create<RFState>((set, get) => ({
                 //Go through each task and increment the time, if the time is greater than the latency, delete the task from the map
                 node.data.tasks.forEach((task, taskId) => {
                     task.t += timeScale;
-                    const latency = TemplateLibrary.get(task.templateName)?.get(Component.SERVER)?.time || 0
+                    const latency = taskLibrary.get(task.templateName)?.get(Component.SERVER)?.time || 0
 
                     if (task.t >= latency && task.status !== TaskStatus.WAITING) {
                         edges.forEach((edge) => {
@@ -197,7 +205,7 @@ const useStore = create<RFState>((set, get) => ({
                 // Go through each message and increment the time, if the time is greater than the latency, delete the message from the array
                 edge.data.messages.forEach((message, messageId) => {
                     message.t += timeScale
-                    const latency = TemplateLibrary.get(message.templateName)?.get(message.direction == Direction.TARGET ? Component.CLIENT_CALL : Component.SERVER_RESPONSE)?.time || 0
+                    const latency = taskLibrary.get(message.templateName)?.get(message.direction == Direction.TARGET ? Component.CLIENT_CALL : Component.SERVER_RESPONSE)?.time || 0
                     if (edge.data && message.t >= latency) {
                         edge.data.messages.delete(messageId)
                         const outId = message.direction == Direction.SOURCE ? edge.source : edge.target
@@ -212,14 +220,14 @@ const useStore = create<RFState>((set, get) => ({
             if (node.data.tasks.size > 0) {
                 node.data.tasks.forEach((task, taskId) => {
                     task.t += timeScale;
-                    const latency = TemplateLibrary.get(task.templateName)?.get(Component.DATABASE)?.time || 0
+                    const latency = taskLibrary.get(task.templateName)?.get(Component.DATABASE)?.time || 0
                     if (task.t >= latency) {
                         edges.forEach((edge) => {
                             if (edge.target === node.id) {
                                 updates.push({ outId: edge.id, id: task.id, direction: Direction.SOURCE, templateName: task.templateName })
                             }
                         })
-                        const storage = TemplateLibrary.get(task.templateName)?.get(Component.DATABASE)?.storage || 0
+                        const storage = taskLibrary.get(task.templateName)?.get(Component.DATABASE)?.storage || 0
                         node.data.total += storage
                         node.data.tasks.delete(taskId)                        
                     }
