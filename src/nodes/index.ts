@@ -1,9 +1,17 @@
 import { Node } from 'reactflow';
-import { ClientData, Component, DatabaseData, ServerData } from './types';
+import { AddUser, ClientData, Component, DatabaseData, GetUser, ServerData } from './types';
 import { TimeScale } from '../core/time';
 
 const spawnNodeData : ClientData =  {
-  spawnRate: 86400000000 / 1000 / 10, tasks: new Map(),
+  tasks: new Map(),
+  features : {
+    [AddUser]: {
+      callsPerDay : 86400000000 / 200
+    },
+    [GetUser]: {
+      callsPerDay : 86400000000
+    },
+  },
   componentName: Component.CLIENT
 }
 const pipeNodeData : ServerData = {
@@ -44,17 +52,23 @@ export default [
     data: endNodeData,
     position: { x: 0, y: 450 },
   },
-
   {
     id: '4',
     type: NodeType.CLIENT,
     data: {
-      spawnRate: 86400000000 / 1000 / 10, tasks: new Map(),
+      tasks: new Map(),
+      features : {
+        [AddUser]: {
+          callsPerDay : 86400000000 / 200
+        },
+        [GetUser]: {
+          callsPerDay : 86400000000
+        },
+      },
       componentName: Component.CLIENT
     },
     position: { x: 200, y: -100 },
   },
-
   {
     id: '5',
     type: NodeType.SERVER,

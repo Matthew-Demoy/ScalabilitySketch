@@ -46,7 +46,7 @@ export type RFState = {
     generators: Node<NodeData>[];
     onNodesChange: OnNodesChange;
     onEdgesChange: OnEdgesChange;
-    onConnect: OnConnect;
+    onConnect: (edgeParams: Edge | Connection) => void;
     setNodes: (nodes: Node[]) => void;
     setEdges: (edges: Edge[]) => void;
     updateSpawnRate: (nodeId: string, rate: number) => void;
@@ -60,6 +60,7 @@ export type RFState = {
     updateTimeScale: (scale : TimeScale) => void;
     taskLibrary : TaskLibrary;
     modifyTasks : (updatedLibrary : TaskLibrary) => void;
+    modifyFeaturesForClient : (nodeId : string, features : { [string: string]: { callsPerDay: number } }) => void;
 };
 
 // this is our useStore hook that we can use in our components to get parts of the store and call actions
@@ -87,18 +88,23 @@ const useStore = create<RFState>((set, get) => ({
             edges: applyEdgeChanges(changes, get().edges),
         });
     },
-    onConnect: (connection: Connection) => {
-        const edge : Edge<EdgeData> = {
-            id: `${connection.source}-${connection.target}-${get().edges.length}`,
-            source: connection.source ?? "",
-            target: connection.target ?? "",      
-            type: "transfer",
-            data: { messages: new Map<number, Message>(), latency : 2 * TimeScale.MILLISECOND},
-          }
-
-        set({
-            edges: addEdge(edge, get().edges),
-        });
+    onConnect: (connection: Connection | Edge) => {
+        if(!('id' in connection)) {
+            const edge : Edge<EdgeData> = {
+                id: `${connection.source}-${connection.target}-${get().edges.length}`,
+                source: connection.source ?? "",
+                target: connection.target ?? "",      
+                type: "transfer",
+                data: { messages: new Map<number, Message>(), latency : 2 * TimeScale.MILLISECOND},
+              }
+              set({
+                edges: addEdge(edge, get().edges),
+            });
+        }else {
+            set({
+                edges: addEdge(connection, get().edges),
+            });
+        }
     },
     setNodes: (nodes: Node[]) => {
         set({ nodes });
@@ -112,6 +118,17 @@ const useStore = create<RFState>((set, get) => ({
             nodes: get().nodes.map((node) => {
                 if (node.id === nodeId) {
                     node.data = { ...node.data, spawnRate };
+                }
+
+                return node;
+            }),
+        });
+    },
+    modifyFeaturesForClient: (nodeId: string, features : { [string: string]: { callsPerDay: number } }) => {
+        set({
+            nodes: get().nodes.map((node) => {
+                if (node.id === nodeId) {
+                    (node.data as ClientData).features = features
                 }
 
                 return node;
@@ -177,7 +194,6 @@ const useStore = create<RFState>((set, get) => ({
             return;
         }
         
-        console.log(nodes, edges)
         let updates: Update[] = []
         // for each node see if it has packets, increment the time and send the packets
         pipes.forEach((node) => {

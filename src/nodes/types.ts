@@ -1,5 +1,5 @@
-import {    
-    Node,    
+import {
+    Node,
 } from 'reactflow';
 import { TimeScale } from '../core/time';
 import { NodeType } from '.';
@@ -17,7 +17,7 @@ export interface TaskMetadata {
     bandwidth?: number,
 
     // Effect of time in ms
-    time : number
+    time: number
 }
 
 export enum Component {
@@ -39,21 +39,21 @@ export type TaskLibrary = Map<string, TaskData>
 
 const addUser: TaskData = new Map([
     [Component.DATABASE, { storage: 100, time: 10 * TimeScale.MILLISECOND }],
-    [Component.SERVER, { time: 1 * TimeScale.MILLISECOND   }],
-    [Component.CLIENT_CALL, { time: 10 * TimeScale.MILLISECOND  }],
-    [Component.SERVER_RESPONSE, { time: 10  * TimeScale.MILLISECOND  }],
-    [Component.DATABASE_RESPONSE, { time: 10 * TimeScale.MILLISECOND  }]
+    [Component.SERVER, { time: 1 * TimeScale.MILLISECOND }],
+    [Component.CLIENT_CALL, { time: 10 * TimeScale.MILLISECOND }],
+    [Component.SERVER_RESPONSE, { time: 10 * TimeScale.MILLISECOND }],
+    [Component.DATABASE_RESPONSE, { time: 10 * TimeScale.MILLISECOND }]
 ]);
 
 const getUser: TaskData = new Map([
     [Component.DATABASE, { storage: 1, time: 1 * TimeScale.MILLISECOND }],
-    [Component.SERVER, { time: 1 * TimeScale.MILLISECOND   }],
-    [Component.CLIENT_CALL, { time: 10 * TimeScale.MILLISECOND  }],
-    [Component.SERVER_RESPONSE, { time: 10  * TimeScale.MILLISECOND  }],
-    [Component.DATABASE_RESPONSE, { time: 10 * TimeScale.MILLISECOND  }]
+    [Component.SERVER, { time: 1 * TimeScale.MILLISECOND }],
+    [Component.CLIENT_CALL, { time: 10 * TimeScale.MILLISECOND }],
+    [Component.SERVER_RESPONSE, { time: 10 * TimeScale.MILLISECOND }],
+    [Component.DATABASE_RESPONSE, { time: 10 * TimeScale.MILLISECOND }]
 ]);
 
-export const TemplateLibrary : TaskLibrary = new Map<string, TaskData>(
+export const TemplateLibrary: TaskLibrary = new Map<string, TaskData>(
     [
         [AddUser, addUser],
         [GetUser, getUser]
@@ -63,23 +63,28 @@ export const TemplateLibrary : TaskLibrary = new Map<string, TaskData>(
 interface Task {
     //The unique ID to indentify the task
     //Think of it as the process id that would live on each machine to perform the task
-    id : number
+    id: number
     //The elapsed time (t) in ms
-    t : number
+    t: number
     //The status of the task, simulates call response of http
-    status : TaskStatus
+    status: TaskStatus
 
     //The name of the templated task to be looked up in the library
-    templateName : string
-    callingEdge : string
+    templateName: string
+    callingEdge: string
 }
 
 interface NodeCommon {
-    tasks : Map<number, Task>
-    componentName : Component
+    tasks: Map<number, Task>
+    componentName: Component
 }
+
 interface ClientData extends NodeCommon {
-    spawnRate: number
+    features: {
+        [string: string]: {
+            callsPerDay: number
+        }
+    }
 }
 
 type Client = Node<ClientData>;
@@ -89,7 +94,7 @@ const isClient = (node: Node<NodeData>): node is Client => {
 };
 
 interface ServerData extends NodeCommon {
-    latency: number    
+    latency: number
 }
 type PipeNode = Node<ServerData>;
 
