@@ -261,19 +261,22 @@ const useStore = create<RFState>((set, get) => ({
 
         // For each generator, we want to generate items
         generators.forEach((generator) => {
-            const dau = (generator.data as ClientData).spawnRate; // Assuming this is the DAU
-
-            const secondsPerDay = 24 * 60 * 60
-            const ticksPerDay = timeScale === TimeScale.MICROSECOND ? secondsPerDay * 1000000 : timeScale === TimeScale.MILLISECOND ? secondsPerDay * 1000 : secondsPerDay;
-            const spawnRatePerTick = dau / ticksPerDay;
-            edges.forEach((edge) => {
-                if (edge.source === generator.id) {
-                    // Spawn a task with probability spawnRatePerTick
-                    if (Math.random() < spawnRatePerTick) {
-                        updates.push({ outId: edge.id, id: taskCounter, direction: Direction.TARGET, templateName: AddUser })
-                        incrementTaskCounter()
+            Array.from(Object.keys(generator.data.features)).forEach((feature) => {
+                const dau = generator.data.features[feature].callsPerDay
+                const secondsPerDay = 24 * 60 * 60
+                const ticksPerDay = timeScale === TimeScale.MICROSECOND ? secondsPerDay * 1000000 : timeScale === TimeScale.MILLISECOND ? secondsPerDay * 1000 : secondsPerDay;
+                const spawnRatePerTick = dau / ticksPerDay;
+                edges.forEach((edge) => {
+                    console.log("edge.source", edge.source, "generator id", generator.id, "sourceHandle", edge.sourceHandle, `${feature}-${generator.id}`)
+                    if (edge.source === generator.id && edge.sourceHandle === `${feature}-${generator.id}`) {
+                        console.log("Making task", feature, edge.id)
+                        // Spawn a task with probability spawnRatePerTick
+                        if (Math.random() < spawnRatePerTick) {
+                            updates.push({ outId: edge.id, id: taskCounter, direction: Direction.TARGET, templateName: feature })
+                            incrementTaskCounter()
+                        }
                     }
-                }
+                })                          
             })
         });
 

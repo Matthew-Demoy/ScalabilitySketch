@@ -1,5 +1,5 @@
-import React from 'react';
-import { Connection, Edge, Handle, NodeProps, Position } from 'reactflow';
+import React, { useCallback, useEffect } from 'react';
+import { Connection, Edge, Handle, NodeProps, Position, useUpdateNodeInternals } from 'reactflow';
 
 import useStore from '../store/store';
 import { ClientData } from './types';
@@ -28,6 +28,13 @@ function FaucetNode({ id, data }: NodeProps<ClientData>) {
     return match?.type === NodeType.SERVER
   }
 
+  const updateNodeInternals = useUpdateNodeInternals();
+  
+  useEffect(() => {
+    updateNodeInternals(id);
+  }, [id, updateNodeInternals]);
+
+  
   const handleOnConnect = (connection : Connection, sourceHandleId : string) => {
     const Edge : Edge<EdgeData> = {
       id: `${id}-${connection.target}`,
