@@ -30,14 +30,16 @@ const selector = (state: RFState) => ({
   timeScale: state.timeScale,
   setNodes: state.setNodes,
   taskLibrary: state.taskLibrary,
-  modifyTasks: state.modifyTasks
+  modifyTasks: state.modifyTasks,
+  modifyFeaturesForClient: state.modifyFeaturesForClient
 });
 
 function Flow() {
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, time, setTimeScale, timeScale, setNodes, taskLibrary, modifyTasks } = useStore(
+  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, time, setTimeScale, timeScale, setNodes, taskLibrary, modifyTasks, modifyFeaturesForClient } = useStore(
     useShallow(selector),
   );
 
+  const features = Array.from(taskLibrary.keys()).map((task) => task)
   const { isRunning, tick } = useStore()
 
   const [reactFlowInstance, setReactFlowInstance] = useState(null as ReactFlowInstance | null);
@@ -58,6 +60,9 @@ function Flow() {
   const viewPort = reactFlowInstance?.getViewport()
   const x = viewPort?.x || 0
   const y = viewPort?.y || 0
+  const [isTaskViewOpen, setIsTaskViewOpen] = useState(false);
+
+
   const handleAddComponent = (choice: Component) => {
 
     const component = {
@@ -89,17 +94,29 @@ function Flow() {
         {isRunning ? <button className={'stopButton'} onClick={() => useStore.getState().resetSimulation()}>Stop</button>
           : <button className={'startButton'} onClick={() => useStore.getState().startSimulation()}>Start</button>}
 
-        <NodeInfoList  nodes={nodes } />
+        <NodeInfoList  nodes={nodes} features={features} modifyFeaturesForClient={modifyFeaturesForClient}/>
         <AddComponent addComponent={(choice) => handleAddComponent(choice)} />
 
-        <TaskView taskLibrary={taskLibrary} modifyTasks={modifyTasks} />
+        <div className='dropdown-button-container'>
+          <h2>
+            Tasks
+
+          </h2>
+          <button onClick={() => setIsTaskViewOpen(!isTaskViewOpen)}>
+              {isTaskViewOpen ? '\\/' : '<'}
+            </button>
+
+        </div>
+        {isTaskViewOpen && (
+            <TaskView taskLibrary={taskLibrary} modifyTasks={modifyTasks} />
+          )}
+       
       </div>
       <ReactFlow
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         onInit={onInit}

@@ -46,7 +46,7 @@ export type RFState = {
     generators: Node<NodeData>[];
     onNodesChange: OnNodesChange;
     onEdgesChange: OnEdgesChange;
-    onConnect: OnConnect;
+    onConnect: (edgeParams: Edge | Connection) => void;
     setNodes: (nodes: Node[]) => void;
     setEdges: (edges: Edge[]) => void;
     updateSpawnRate: (nodeId: string, rate: number) => void;
@@ -60,6 +60,7 @@ export type RFState = {
     updateTimeScale: (scale : TimeScale) => void;
     taskLibrary : TaskLibrary;
     modifyTasks : (updatedLibrary : TaskLibrary) => void;
+    modifyFeaturesForClient : (nodeId : string, features : { [string: string]: { callsPerDay: number } }) => void;
 };
 
 // this is our useStore hook that we can use in our components to get parts of the store and call actions
@@ -87,24 +88,28 @@ const useStore = create<RFState>((set, get) => ({
             edges: applyEdgeChanges(changes, get().edges),
         });
     },
-    onConnect: (connection: Connection) => {
-        const edge : Edge<EdgeData> = {
-            id: `${connection.source}-${connection.target}-${get().edges.length}`,
-            source: connection.source ?? "",
-            target: connection.target ?? "",      
-            type: "transfer",
-            data: { messages: new Map<number, Message>(), latency : 2 * TimeScale.MILLISECOND},
-          }
-
-        set({
-            edges: addEdge(edge, get().edges),
-        });
+    onConnect: (connection: Connection | Edge) => {
+        if(!('id' in connection)) {
+            const edge : Edge<EdgeData> = {
+                id: `${connection.source}-${connection.target}-${get().edges.length}`,
+                source: connection.source ?? "",
+                target: connection.target ?? "",      
+                type: "transfer",
+                data: { messages: new Map<number, Message>(), latency : 2 * TimeScale.MILLISECOND},
+              }
+              set({
+                edges: addEdge(edge, get().edges),
+            });
+        }else {
+            set({
+                edges: addEdge(connection, get().edges),
+            });
+        }
     },
     setNodes: (nodes: Node[]) => {
         set({ nodes });
     },
     setEdges: (edges: Edge[]) => {
-        console.log("setting edges")
         set({ edges });
     },
     updateSpawnRate: (nodeId: string, spawnRate: number) => {
@@ -112,6 +117,17 @@ const useStore = create<RFState>((set, get) => ({
             nodes: get().nodes.map((node) => {
                 if (node.id === nodeId) {
                     node.data = { ...node.data, spawnRate };
+                }
+
+                return node;
+            }),
+        });
+    },
+    modifyFeaturesForClient: (nodeId: string, features : { [string: string]: { callsPerDay: number } }) => {
+        set({
+            nodes: get().nodes.map((node) => {
+                if (node.id === nodeId) {
+                    (node.data as ClientData).features = features
                 }
 
                 return node;
@@ -177,7 +193,6 @@ const useStore = create<RFState>((set, get) => ({
             return;
         }
         
-        console.log(nodes, edges)
         let updates: Update[] = []
         // for each node see if it has packets, increment the time and send the packets
         pipes.forEach((node) => {
@@ -245,19 +260,20 @@ const useStore = create<RFState>((set, get) => ({
 
         // For each generator, we want to generate items
         generators.forEach((generator) => {
-            const dau = (generator.data as ClientData).spawnRate; // Assuming this is the DAU
-
-            const secondsPerDay = 24 * 60 * 60
-            const ticksPerDay = timeScale === TimeScale.MICROSECOND ? secondsPerDay * 1000000 : timeScale === TimeScale.MILLISECOND ? secondsPerDay * 1000 : secondsPerDay;
-            const spawnRatePerTick = dau / ticksPerDay;
-            edges.forEach((edge) => {
-                if (edge.source === generator.id) {
-                    // Spawn a task with probability spawnRatePerTick
-                    if (Math.random() < spawnRatePerTick) {
-                        updates.push({ outId: edge.id, id: taskCounter, direction: Direction.TARGET, templateName: AddUser })
-                        incrementTaskCounter()
+            Array.from(Object.keys(generator.data.features)).forEach((feature) => {
+                const dau = generator.data.features[feature].callsPerDay
+                const secondsPerDay = 24 * 60 * 60
+                const ticksPerDay = timeScale === TimeScale.MICROSECOND ? secondsPerDay * 1000000 : timeScale === TimeScale.MILLISECOND ? secondsPerDay * 1000 : secondsPerDay;
+                const spawnRatePerTick = dau / ticksPerDay;
+                edges.forEach((edge) => {
+                    if (edge.source === generator.id && edge.sourceHandle === `${feature}-${generator.id}`) {
+                        // Spawn a task with probability spawnRatePerTick
+                        if (Math.random() < spawnRatePerTick) {
+                            updates.push({ outId: edge.id, id: taskCounter, direction: Direction.TARGET, templateName: feature })
+                            incrementTaskCounter()
+                        }
                     }
-                }
+                })                          
             })
         });
 
