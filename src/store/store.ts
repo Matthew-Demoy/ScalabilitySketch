@@ -110,7 +110,6 @@ const useStore = create<RFState>((set, get) => ({
         set({ nodes });
     },
     setEdges: (edges: Edge[]) => {
-        console.log("setting edges")
         set({ edges });
     },
     updateSpawnRate: (nodeId: string, spawnRate: number) => {
@@ -267,9 +266,7 @@ const useStore = create<RFState>((set, get) => ({
                 const ticksPerDay = timeScale === TimeScale.MICROSECOND ? secondsPerDay * 1000000 : timeScale === TimeScale.MILLISECOND ? secondsPerDay * 1000 : secondsPerDay;
                 const spawnRatePerTick = dau / ticksPerDay;
                 edges.forEach((edge) => {
-                    console.log("edge.source", edge.source, "generator id", generator.id, "sourceHandle", edge.sourceHandle, `${feature}-${generator.id}`)
                     if (edge.source === generator.id && edge.sourceHandle === `${feature}-${generator.id}`) {
-                        console.log("Making task", feature, edge.id)
                         // Spawn a task with probability spawnRatePerTick
                         if (Math.random() < spawnRatePerTick) {
                             updates.push({ outId: edge.id, id: taskCounter, direction: Direction.TARGET, templateName: feature })

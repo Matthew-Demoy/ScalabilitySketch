@@ -24,7 +24,6 @@ function FaucetNode({ id, data }: NodeProps<ClientData>) {
 
   const handleIsValidConnection = (connection : Connection) : boolean => {
     const match = nodes.find((node) => node.id === connection.target)
-    
     return match?.type === NodeType.SERVER
   }
 
@@ -45,7 +44,6 @@ function FaucetNode({ id, data }: NodeProps<ClientData>) {
       data: { messages: new Map<number, Message>(), latency : 2 * TimeScale.MILLISECOND},
     }
     
-    console.log("connect", Edge)
     onConnect(Edge)
   }
 
@@ -53,7 +51,7 @@ function FaucetNode({ id, data }: NodeProps<ClientData>) {
   const margin = 20 * Object.keys(data.features).length;
 
   //create handles for each feature in data
-  const handles = Array.from(Object.keys(data.features)).map(([feature, value], index) => {
+  const handles = Object.keys(data.features).map((feature, index) => {
     return (
       <Handle
         key={`${feature}-${id}`}
@@ -65,7 +63,7 @@ function FaucetNode({ id, data }: NodeProps<ClientData>) {
         style={{ ...DEFAULT_HANDLE_STYLE, left: `${ margin * (index + 1)}%`, background: 'red' }}
       />
     );
-  })
+  });
 
   return (
     <div className='componentBorder'>
