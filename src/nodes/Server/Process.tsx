@@ -1,12 +1,12 @@
 import { Connection, Handle, NodeProps, Position, Edge } from 'reactflow';
-import '../index.css'
-import useStore from '../store/store';
-import { ServerData } from './types';
-import { NodeType } from '.';
-import { EdgeData, Message } from '../edges/types';
-import { TimeScale } from '../core/time';
+import '../../index.css'
+import useStore from '../../store/store';
+import { ServerData } from '../types';
+import { NodeType } from '..';
+import { EdgeData, Message } from '../../edges/types';
+import { TimeScale } from '../../core/time';
 
-function Server({ id, data }: NodeProps<ServerData>) {
+function Process({ id, data }: NodeProps<ServerData>) {
   const nodes = useStore((state) => state.nodes);
   const onConnect = useStore((state) => state.onConnect);
 
@@ -30,9 +30,9 @@ function Server({ id, data }: NodeProps<ServerData>) {
   return (
     <div className='componentBorder'>
       <Handle type="target" position={Position.Top} />
-      Server
+      Process
       <Handle isValidConnection={handleIsValidConnection}  onConnect={(connection) => handleOnConnect(connection)}  type="source" position={Position.Bottom} />
     </div>);
 }
 
-export default Server;
+export default Process;

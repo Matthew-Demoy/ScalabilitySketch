@@ -29,7 +29,8 @@ const endNodeData : DatabaseData = {
 export enum NodeType {
   CLIENT = 'client',
   SERVER = 'server',
-  DATABASE = 'database'
+  DATABASE = 'database',
+  PROCESS = 'process'
 }
 
 export default [
@@ -39,7 +40,6 @@ export default [
     data: spawnNodeData,
     position: { x: 0, y: -100 },
   },
-
   {
     id: '2',
     type: NodeType.SERVER,
@@ -54,39 +54,10 @@ export default [
   },
   {
     id: '4',
-    type: NodeType.CLIENT,
-    data: {
-      tasks: new Map(),
-      features : {
-        [AddUser]: {
-          callsPerDay : 86400000000 / 200
-        },
-        [GetUser]: {
-          callsPerDay : 86400000000
-        },
-      },
-      componentName: Component.CLIENT
-    },
-    position: { x: 200, y: -100 },
-  },
-  {
-    id: '5',
-    type: NodeType.SERVER,
-    data: {
-      tasks: new Map(),
-      componentName: Component.SERVER,
-      latency: 50 * TimeScale.MICROSECOND
-    },
-    position: { x: 200, y: 125 },
-  },
-  {
-    id: '6',
-    type: NodeType.DATABASE,
-    data: {
-      tasks: new Map(),
-      componentName: Component.DATABASE,
-      total: 0
-    },
-    position: { x: 200, y: 450 },
+    type: NodeType.PROCESS,
+    data: pipeNodeData,
+    position: { x: 0, y: 0 },
+    parentNode: '2',
+    extent: 'parent',
   },
 ] as Node[];

@@ -6,7 +6,7 @@ import './index.css'
 
 import useStore, { RFState } from './store/store';
 import Client from './nodes/Client';
-import Server from './nodes/Server';
+import Server from './nodes/Server/Server';
 import Database from './nodes/Database';
 import { useEffect, useState } from 'react';
 import Transfer from './edges/Transfer';
@@ -15,8 +15,9 @@ import NodeInfoList from './components/nodesInfoList';
 import AddComponent from './components/addComponent';
 import { Component } from './nodes/types';
 import TaskView from './components/taskView';
+import Process from './nodes/Server/Process';
 
-const nodeTypes = { client: Client, server: Server, database: Database };
+const nodeTypes = { client: Client, server: Server, database: Database, process: Process};
 const edgeTypes = { transfer: Transfer }
 
 const selector = (state: RFState) => ({
