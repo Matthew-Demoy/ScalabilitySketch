@@ -1,6 +1,7 @@
 import { Node } from 'reactflow';
-import { AddUser, ClientData, Component, DatabaseData, GetUser, ServerData } from './types';
+import { AddUser, ClientData, Component, DatabaseData, GetUser, ProcessData, ServerData } from './types';
 import { TimeScale } from '../core/time';
+import '../index.css'
 
 const spawnNodeData : ClientData =  {
   tasks: new Map(),
@@ -25,6 +26,14 @@ const endNodeData : DatabaseData = {
   total: 0
 }
 
+export const processNodeData : ProcessData = {
+  name: 'Add User',
+  memory: 100,
+  time: 100,
+  callIndex : 0,
+  calls: []
+}
+
 
 export enum NodeType {
   CLIENT = 'client',
@@ -45,6 +54,7 @@ export default [
     type: NodeType.SERVER,
     data: pipeNodeData,
     position: { x: 0, y: 125 },
+    className: 'componentBorder server'
   },
   {
     id: '3',
@@ -52,12 +62,26 @@ export default [
     data: endNodeData,
     position: { x: 0, y: 450 },
   },
+
   {
-    id: '4',
-    type: NodeType.PROCESS,
+    id: '5',
+    type: NodeType.SERVER,
     data: pipeNodeData,
-    position: { x: 0, y: 0 },
-    parentNode: '2',
+    position: { x: 250, y: 125 },
+    className: 'componentBorder server'
+  },
+  {
+    id: '6',
+    type: NodeType.DATABASE,
+    data: endNodeData,
+    position: { x: 250, y: 450 },
+  },
+  {
+    id: '7',
+    type: NodeType.PROCESS,
+    data: processNodeData,
+    position: { x: 20, y: 60 },
+    parentNode: '5',
     extent: 'parent',
   },
 ] as Node[];

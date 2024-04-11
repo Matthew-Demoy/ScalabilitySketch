@@ -1,4 +1,4 @@
-import { Connection, Handle, NodeProps, Position, Edge } from 'reactflow';
+import { Connection, Handle, NodeProps, Position, Edge, NodeResizer } from 'reactflow';
 import '../../index.css'
 import useStore from '../../store/store';
 import { ServerData } from '../types';
@@ -6,8 +6,9 @@ import { NodeType } from '..';
 import { EdgeData, Message } from '../../edges/types';
 import { TimeScale } from '../../core/time';
 import "./Server.css"
+import { memo } from 'react';
 
-function Server({ id, data }: NodeProps<ServerData>) {
+function Server({ id, data, selected }: NodeProps<ServerData>) {
   const nodes = useStore((state) => state.nodes);
   const onConnect = useStore((state) => state.onConnect);
 
@@ -29,11 +30,12 @@ function Server({ id, data }: NodeProps<ServerData>) {
   }
   
   return (
-    <div className='componentBorder server'>
+    <>
+      <NodeResizer color="#ff0071" isVisible={selected} minWidth={100} minHeight={30} />
       <Handle type="target" position={Position.Top} />
       Server
       <Handle isValidConnection={handleIsValidConnection}  onConnect={(connection) => handleOnConnect(connection)}  type="source" position={Position.Bottom} />
-    </div>);
+    </>);
 }
 
-export default Server;
+export default memo(Server);

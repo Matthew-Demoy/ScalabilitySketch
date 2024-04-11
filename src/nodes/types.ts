@@ -31,7 +31,7 @@ export enum Component {
 
 export const AddUser = 'addUser'
 export const GetUser = 'getUser'
-
+export const GetOrg = 'getOrg'
 
 type TaskData = Map<Component, TaskMetadata>
 
@@ -79,6 +79,25 @@ interface NodeCommon {
     componentName: Component
 }
 
+enum Direction {
+    UP = 'up',
+    DOWN = 'down',
+    LEFT = 'left',
+    RIGHT = 'right'
+}
+
+interface ProcessData {
+    name: string
+    memory: number
+    time: number
+    callIndex : 0,
+    calls: {
+        query: string
+        direction: Direction
+
+    }[]
+
+}
 interface ClientData extends NodeCommon {
     features: {
         [string: string]: {
@@ -112,8 +131,14 @@ const isEndNode = (node: Node<NodeData>): node is EndNode => {
     return node.type === NodeType.DATABASE;
 }
 
+type ProcessNode = Node<ProcessData>;
 
-export type NodeData = ClientData | ServerData | DatabaseData
+const isProcessNode = (node: Node<NodeData>): node is ProcessNode => {
+    return node.type === NodeType.PROCESS;
+}
 
-export { isClient, isPipeNode, isEndNode };
-export type { ClientData, ServerData, DatabaseData, Task };
+
+export type NodeData = ClientData | ServerData | DatabaseData | ProcessData;
+
+export { isClient, isPipeNode, isEndNode, isProcessNode};
+export type { ClientData, ServerData, DatabaseData, ProcessData, Task };

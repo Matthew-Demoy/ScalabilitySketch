@@ -1,7 +1,8 @@
-import React, { FC } from 'react';
+import { FC } from 'react';
 import { EdgeProps, getBezierPath, EdgeLabelRenderer, BaseEdge } from 'reactflow';
 import { Direction, EdgeData } from './types';
-import { Component, TemplateLibrary } from '../nodes/types';
+import { Component, TemplateLibrary, isProcessNode } from '../nodes/types';
+import useStore from '../store/store';
 
 const Transfer: FC<EdgeProps<EdgeData>> = ({
   id,
@@ -11,6 +12,7 @@ const Transfer: FC<EdgeProps<EdgeData>> = ({
   targetY,
   sourcePosition,
   targetPosition,
+  target,
   data,
 }) => {
   const [edgePath, labelX, labelY] = getBezierPath({
@@ -23,6 +25,27 @@ const Transfer: FC<EdgeProps<EdgeData>> = ({
   });
 
   let messages : any = [];
+
+  const setEdges = useStore((state) => state.setEdges);
+  const setNodes = useStore((state) => state.setNodes);
+  const edges = useStore((state) => state.edges);
+  const nodes = useStore((state) => state.nodes);
+
+  const onEdgeClick = () => {
+    
+    const filtered = edges.filter((edge) => edge.id !== id);
+    setEdges(filtered);
+
+    const filteredNodes = nodes.filter((node) => {
+      
+      // Delete process nodes that share the same feature name and are a child of the connected parent
+      if(isProcessNode(node)){
+        return !(node.data.name == data.name && target == node.parentNode)
+      }
+      return true
+    })
+    setNodes(filteredNodes)
+  };
   
   data?.messages.forEach((message, messageId) => {
     
@@ -60,8 +83,23 @@ const Transfer: FC<EdgeProps<EdgeData>> = ({
   })
   return (
     <>
-      <BaseEdge id={id} path={edgePath} />
+      <BaseEdge id={id} path={edgePath}/>
         {messages}
+        <EdgeLabelRenderer>
+          <div
+            style={{
+              position: 'absolute',
+              transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+              fontSize: 12,
+              pointerEvents: 'all',
+            }}
+            className="nodrag nopan"
+          >
+            <button onClick={onEdgeClick}>
+              ×
+            </button>
+          </div>
+        </EdgeLabelRenderer>
     </>
   );
 };

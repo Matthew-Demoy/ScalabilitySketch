@@ -12,4 +12,5 @@ export interface Message {
 export interface EdgeData {
     messages : Map<number, Message>,
     latency : number
+    name : string
 }

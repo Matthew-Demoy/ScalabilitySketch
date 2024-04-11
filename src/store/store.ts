@@ -61,6 +61,7 @@ export type RFState = {
     taskLibrary : TaskLibrary;
     modifyTasks : (updatedLibrary : TaskLibrary) => void;
     modifyFeaturesForClient : (nodeId : string, features : { [string: string]: { callsPerDay: number } }) => void;
+    nodeCounter : number;
 };
 
 // this is our useStore hook that we can use in our components to get parts of the store and call actions
@@ -73,6 +74,7 @@ const useStore = create<RFState>((set, get) => ({
     time: 0,
     timeScale: TimeScale.MILLISECOND,
     taskLibrary : TemplateLibrary,
+    nodeCounter : 100,
     modifyTasks : (updatedLibrary : TaskLibrary) => {
         set({
             taskLibrary : updatedLibrary
@@ -107,6 +109,11 @@ const useStore = create<RFState>((set, get) => ({
         }
     },
     setNodes: (nodes: Node[]) => {
+        const nodeCounter = get().nodeCounter
+        const additionalIndex = nodes.length - get().nodes.length
+        if(additionalIndex > 0 ){
+            set({nodeCounter: nodeCounter + additionalIndex})
+        }        
         set({ nodes });
     },
     setEdges: (edges: Edge[]) => {
