@@ -2,6 +2,7 @@ import { Node } from 'reactflow';
 import { AddUser, ClientData, Component, DatabaseData, GetUser, ProcessData, ServerData } from './types';
 import { TimeScale } from '../core/time';
 import '../index.css'
+import {Direction as CallDirection} from './types'
 
 const spawnNodeData : ClientData =  {
   tasks: new Map(),
@@ -29,10 +30,29 @@ const endNodeData : DatabaseData = {
 export const processNodeData : ProcessData = {
   name: 'Add User',
   memory: 100,
-  time: 100,
-  callIndex : 0,
-  calls: []
+  time: 100,  
+  calls: [
+    {
+      query: 'addUser',
+      direction: CallDirection.DOWN
+    }
+  ],
+  processes: new Map()
 }
+
+export const orgProcessNodeData : ProcessData = {
+  name: 'Get Org',
+  memory: 100,
+  time: 100,  
+  calls: [
+    {
+      query: 'getOrg',
+      direction: CallDirection.DOWN
+    }
+  ],
+  processes: new Map()
+}
+
 
 
 export enum NodeType {
@@ -80,6 +100,14 @@ export default [
     id: '7',
     type: NodeType.PROCESS,
     data: processNodeData,
+    position: { x: 20, y: 60 },
+    parentNode: '2',
+    extent: 'parent',
+  },
+  {
+    id: '8',
+    type: NodeType.PROCESS,
+    data: orgProcessNodeData,
     position: { x: 20, y: 60 },
     parentNode: '5',
     extent: 'parent',

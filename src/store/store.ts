@@ -15,7 +15,7 @@ import {
 
 import initialNodes from '../nodes/index';
 import initialEdges from '../edges/index';
-import { AddUser, ClientData, Component, NodeData, TaskLibrary, TaskStatus, TemplateLibrary, isClient, isEndNode, isPipeNode } from '../nodes/types';
+import { AddUser, ClientData, Component, NodeData, TaskLibrary, TaskStatus, TemplateLibrary, isClient, isEndNode, isPipeNode, isProcessNode } from '../nodes/types';
 import { Direction, EdgeData, Message } from '../edges/types';
 import { TimeScale } from '../core/time';
 
@@ -97,7 +97,7 @@ const useStore = create<RFState>((set, get) => ({
                 source: connection.source ?? "",
                 target: connection.target ?? "",      
                 type: "transfer",
-                data: { messages: new Map<number, Message>(), latency : 2 * TimeScale.MILLISECOND},
+                data: { messages: new Map<number, Message>(), latency : 2 * TimeScale.MILLISECOND, name: ""},
               }
               set({
                 edges: addEdge(edge, get().edges),
@@ -190,6 +190,7 @@ const useStore = create<RFState>((set, get) => ({
         const { nodes, edges, taskCounter, incrementTaskCounter, time, timeScale, taskLibrary } = get();
         const generators = nodes.filter(isClient);
         const pipes = nodes.filter(isPipeNode);
+        const processNodes = nodes.filter(isProcessNode)
         const endNodes = nodes.filter(isEndNode)
 
         
@@ -226,6 +227,22 @@ const useStore = create<RFState>((set, get) => ({
 
                     }
                 });
+            }
+        })
+
+        processNodes.forEach((node) => {
+            if(node.data.processes.size > 0){
+                node.data.processes.forEach((process, processId) => {                                        
+                    const callIndex = process.callIndex
+                    if(callIndex < node.data.calls.length){
+                        const call = node.data.calls[callIndex]                        
+                        if(process.status === TaskStatus.PROCESS_OUT){
+                            updates.push({ outId: node.id, id: processId, templateName: call.query, direction : Direction.TARGET })
+                            process.callIndex += 1
+                            process.status = TaskStatus.PROCESS_IN
+                        }                    
+                    }
+                })
             }
         })
 

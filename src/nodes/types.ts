@@ -79,23 +79,31 @@ interface NodeCommon {
     componentName: Component
 }
 
-enum Direction {
+export enum Direction {
     UP = 'up',
     DOWN = 'down',
     LEFT = 'left',
     RIGHT = 'right'
 }
 
+interface Process {
+    t : number,
+    callIndex : number
+    status : TaskStatus
+}
 interface ProcessData {
+    //The name of the process
     name: string
+    // The amount of memory the process takes on the node
     memory: number
+    //The time it takes for the process to run
     time: number
-    callIndex : 0,
     calls: {
         query: string
         direction: Direction
 
     }[]
+    processes: Map<number, Process>
 
 }
 interface ClientData extends NodeCommon {

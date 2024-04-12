@@ -1,12 +1,13 @@
-import { Connection, Handle, NodeProps, Position, Edge, NodeResizer } from 'reactflow';
+import { Connection, Handle, NodeProps, Position, Edge, NodeResizer, useUpdateNodeInternals } from 'reactflow';
 import '../../index.css'
 import useStore from '../../store/store';
-import { ServerData } from '../types';
+import { NodeData, ProcessData, ServerData, isEndNode, isPipeNode, isProcessNode } from '../types';
 import { NodeType } from '..';
 import { EdgeData, Message } from '../../edges/types';
 import { TimeScale } from '../../core/time';
 import "./Server.css"
-import { memo } from 'react';
+import { memo, useEffect } from 'react';
+import { Node } from 'reactflow';
 
 function Server({ id, data, selected }: NodeProps<ServerData>) {
   const nodes = useStore((state) => state.nodes);
@@ -14,27 +15,75 @@ function Server({ id, data, selected }: NodeProps<ServerData>) {
 
   const handleIsValidConnection = (connection: Connection): boolean => {
     const match = nodes.find((node) => node.id === connection.target)
-
-    return match?.type === NodeType.DATABASE
+    if (!match) return false
+    console.log(connection)
+    return isEndNode(match) || isPipeNode(match)
   }
-  const handleOnConnect = (connection : Connection) => {
-    const Edge : Edge<EdgeData> = {
+
+  const updateNodeInternals = useUpdateNodeInternals();
+
+  useEffect(() => {
+    updateNodeInternals(id);
+  }, [id, updateNodeInternals]);
+
+
+  const handleOnConnect = (connection: Connection) => {
+    const Edge: Edge<EdgeData> = {
       id: `${id}-${connection.target}`,
       source: id,
-      target: connection.target ?? "",      
+      sourceHandle: connection.sourceHandle ?? "",
+      targetHandle: connection.targetHandle ?? "",
+      target: connection.target ?? "",
       type: "transfer",
-      data: { messages: new Map<number, Message>(), latency : 2 * TimeScale.MILLISECOND},
+      data: { messages: new Map<number, Message>(), latency: 2 * TimeScale.MILLISECOND },
     }
-    
+
     onConnect(Edge)
   }
-  
+  const children = nodes.filter((node): node is Node<ProcessData> => node.type === NodeType.PROCESS && node.parentNode === id)
+
+  let leftHandle = false;
+  let rightHandle = false;
+  let topHandle = false;
+  let bottomHandle = false;
+
+  children.forEach((child) => {
+    child.data.calls.forEach((call) => {
+      if (call.direction === "up") {
+        topHandle = true;
+      } else if (call.direction === "down") {
+        bottomHandle = true;
+      } else if (call.direction === "left") {
+        leftHandle = true;
+      } else if (call.direction === "right") {
+        rightHandle = true;
+      }
+    })
+  })
+
   return (
     <>
       <NodeResizer color="#ff0071" isVisible={selected} minWidth={100} minHeight={30} />
-      <Handle type="target" position={Position.Top} />
+      <Handle id={'4'}type="target" position={Position.Top} />
       Server
-      <Handle isValidConnection={handleIsValidConnection}  onConnect={(connection) => handleOnConnect(connection)}  type="source" position={Position.Bottom} />
+      <Handle
+        key={1}
+        id={'1'}
+        position={Position.Bottom}
+        isValidConnection={handleIsValidConnection}
+        onConnect={(connection) => handleOnConnect(connection)}
+        type="source"
+        isConnectableStart={true}
+        isConnectableEnd={true} 
+      />
+      <Handle key={2} id={'2'} position={Position.Left} isValidConnection={handleIsValidConnection} onConnect={(connection) => handleOnConnect(connection)} type="target" 
+        isConnectableStart={true}
+        isConnectableEnd={true} 
+      />
+      <Handle key={3} id={'3'} position={Position.Right} isValidConnection={handleIsValidConnection} onConnect={(connection) => handleOnConnect(connection)} type="source"
+        isConnectableStart={true}
+        isConnectableEnd={true}  
+      />
     </>);
 }
 

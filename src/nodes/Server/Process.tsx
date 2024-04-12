@@ -66,10 +66,15 @@ function Process({ id, data }: NodeProps<ProcessData>) {
         )
     }
 
+    const handleRemoveClick = (index : number) => {
+        data.calls.splice(index, 1)
+    }
+        
     const calls = data.calls.map((call, index) => {
         return (
             <div key={index}>
-                {index + 1}. {call.query}  {getDirectionButton(call.direction)}
+                {index + 1}. {call.query}  {getDirectionButton(call.direction)} 
+                <button onClick={() => handleRemoveClick(index)}>x</button>
             </div>
         )
     })

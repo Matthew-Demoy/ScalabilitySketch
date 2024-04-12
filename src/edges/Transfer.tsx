@@ -1,5 +1,5 @@
 import { FC } from 'react';
-import { EdgeProps, getBezierPath, EdgeLabelRenderer, BaseEdge } from 'reactflow';
+import { EdgeProps, getBezierPath, EdgeLabelRenderer, BaseEdge, getSmoothStepPath } from 'reactflow';
 import { Direction, EdgeData } from './types';
 import { Component, TemplateLibrary, isProcessNode } from '../nodes/types';
 import useStore from '../store/store';
@@ -95,9 +95,9 @@ const Transfer: FC<EdgeProps<EdgeData>> = ({
             }}
             className="nodrag nopan"
           >
-            <button onClick={onEdgeClick}>
+            <div onClick={onEdgeClick} style={{cursor: 'pointer'}}>
               ×
-            </button>
+            </div>
           </div>
         </EdgeLabelRenderer>
     </>
