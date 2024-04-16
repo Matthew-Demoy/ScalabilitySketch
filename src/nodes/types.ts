@@ -90,14 +90,18 @@ interface Process {
     t : number,
     callIndex : number
     status : TaskStatus
+    callingEdge : string
 }
 interface ProcessData {
     //The name of the process
-    name: string
+    displayName: string
+
+    key : string,
+
     // The amount of memory the process takes on the node
     memory: number
     //The time it takes for the process to run
-    time: number
+    time: number,
     calls: {
         query: string
         direction: Direction
@@ -120,8 +124,9 @@ const isClient = (node: Node<NodeData>): node is Client => {
     return node.type === NodeType.CLIENT;
 };
 
-interface ServerData extends NodeCommon {
+interface ServerData {
     latency: number
+    componentName: Component
 }
 type PipeNode = Node<ServerData>;
 

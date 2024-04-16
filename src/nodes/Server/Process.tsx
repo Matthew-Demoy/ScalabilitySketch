@@ -91,7 +91,7 @@ function Process({ id, data }: NodeProps<ProcessData>) {
     return (
         <div className='componentBorder'>
             <b>
-               {data.name}
+               {data.displayName}
             </b>
             <br></br>
             <button className='proccessToggle'>

@@ -13,6 +13,7 @@ const Transfer: FC<EdgeProps<EdgeData>> = ({
   sourcePosition,
   targetPosition,
   target,
+  source,
   data,
 }) => {
   const [edgePath, labelX, labelY] = getBezierPath({
@@ -84,7 +85,7 @@ const Transfer: FC<EdgeProps<EdgeData>> = ({
   return (
     <>
       <BaseEdge id={id} path={edgePath}/>
-        {messages}
+        {messages}        
         <EdgeLabelRenderer>
           <div
             style={{
@@ -97,6 +98,10 @@ const Transfer: FC<EdgeProps<EdgeData>> = ({
           >
             <div onClick={onEdgeClick} style={{cursor: 'pointer'}}>
               ×
+              {id}----
+              {source}-
+              {target}
+              
             </div>
           </div>
         </EdgeLabelRenderer>

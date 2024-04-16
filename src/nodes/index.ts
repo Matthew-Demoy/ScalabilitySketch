@@ -1,5 +1,5 @@
 import { Node } from 'reactflow';
-import { AddUser, ClientData, Component, DatabaseData, GetUser, ProcessData, ServerData } from './types';
+import { AddUser, ClientData, Component, DatabaseData, GetOrg, GetUser, ProcessData, ServerData } from './types';
 import { TimeScale } from '../core/time';
 import '../index.css'
 import {Direction as CallDirection} from './types'
@@ -8,7 +8,7 @@ const spawnNodeData : ClientData =  {
   tasks: new Map(),
   features : {
     [AddUser]: {
-      callsPerDay : 86400000000 / 200
+      callsPerDay : 86400000000 / 86400000000
     },
     [GetUser]: {
       callsPerDay : 86400000000
@@ -28,7 +28,8 @@ const endNodeData : DatabaseData = {
 }
 
 export const processNodeData : ProcessData = {
-  name: 'Add User',
+  displayName : 'Add User',
+  key : AddUser,
   memory: 100,
   time: 100,  
   calls: [
@@ -41,7 +42,8 @@ export const processNodeData : ProcessData = {
 }
 
 export const orgProcessNodeData : ProcessData = {
-  name: 'Get Org',
+  displayName: 'Get Org',
+  key : GetOrg,
   memory: 100,
   time: 100,  
   calls: [
