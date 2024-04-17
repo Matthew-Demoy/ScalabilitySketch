@@ -35,7 +35,7 @@ export interface UpdateEdge extends UpdateCommon {
 export type ComponentUpdate = UpdateNode | UpdateEdge;
 
 //typeguard for is updateEdge
-function isUpdateEdge(update: Update): update is UpdateEdge {
+function isUpdateEdge(update: ComponentUpdate): update is UpdateEdge {
     return (update as UpdateEdge).direction !== undefined;
 }
 
@@ -157,20 +157,26 @@ const useStore = create<RFState>((set, get) => {
                     console.log("Node not found")
                 } else if(isPipeNode(node)){
                     const process = get().nodes.find((node): node is Node<ProcessData> => isProcessNode(node) && node.parentNode == nodeId && node.data.key == templateName)
+
+                    console.log("process", process, update, node)
+                    
+                    
                     if (!process) {
                         console.log("Process not found")
                         return
                     }
-                    updateProcessNode(process)   
+                    updateProcessNode(process, update)   
                 } else if(isEndNode(node)){
                     updateDatabaseNode(node, update)
                 }else if(isClient(node)){
                     updateDatabaseNode(node, update)
                 }
             } else {
+                //console.log("update edge", update, get().edges)                
                 set({
                     edges: get().edges.map((edge) => {
                         if (edge.id === nodeId && edge.data !== undefined) {                            
+                            console.log("edge data", edge, update.id, update.direction, update.templateName)
                             const newMessages = new Map(edge.data?.messages);
                             newMessages.set(update.id, { t: 0, id: update.id, direction: update.direction, templateName });
                             edge.data = { messages: newMessages, latency: edge.data.latency, name: edge.data.name };
@@ -238,29 +244,37 @@ const useStore = create<RFState>((set, get) => {
                     });
                 }
             })
-
+            //console.log("nodes", nodes, edges)
+            //console.log("edges, nodes", edges, nodes)
             processNodes.forEach((processNode) => {
                 if (processNode.data.processes.size > 0) {
                     const newProcesses = new Map(processNode.data.processes);
                     newProcesses.forEach((process, processId) => {
                         const callIndex = process.callIndex
+                        //console.log("call index", callIndex, process.status, processNode.data.calls.length)
                         if (callIndex < processNode.data.calls.length) {
-                            console.log("new call", process)
                             const call = processNode.data.calls[callIndex]
+                            
                             if (process.status === TaskStatus.PROCESS_IN) {
+                                console.log("process in ", process)
                                 // go from direction -> handle -> edge
                                 let direction = processNode.data.calls[process.callIndex].direction
                                 let outId = `${processNode.parentNode}-${direction}`
+                                if(callIndex == 1){
+                                    console.log("call indexing", { outId, id: processId, templateName: call.query, direction: Direction.TARGET })
+                                }
                                 updates.push({ outId, id: processId, templateName: call.query, direction: Direction.TARGET })
                                 process.callIndex += 1
                                 process.status = TaskStatus.WAITING
                             }
                         } else if(callIndex == processNode.data.calls.length){
-                            process.status = TaskStatus.PROCESS_OUT                                      
-                            updates.push({ outId : process.callingEdge, id: processId, templateName: processNode.data.key, direction: Direction.SOURCE })
+                            console.log("process out ", process)
+                            process.status = TaskStatus.PROCESS_OUT
+
+                            updates.push({ outId : process.callingEdge, id: processId, templateName: process.callingProcess, direction: Direction.SOURCE })
+                            newProcesses.delete(processId)
                         }
                     })
-
                     processNode.data.processes = newProcesses;
 
                     set({

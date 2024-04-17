@@ -86,11 +86,12 @@ export enum Direction {
     RIGHT = 'right'
 }
 
-interface Process {
+export interface Process {
     t : number,
     callIndex : number
     status : TaskStatus
     callingEdge : string
+    callingProcess : string
 }
 interface ProcessData {
     //The name of the process

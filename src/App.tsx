@@ -87,7 +87,7 @@ function Flow() {
         Time : {displayTime(time)}
 
         <div>
-          <button disabled={timeScale == TimeScale.MICROSECOND} onClick={() => setTimeScale(TimeScale.MICROSECOND)} > .001X</button>
+          <button disabled={timeScale == TimeScale.MICROSECOND * 10} onClick={() => setTimeScale(TimeScale.MICROSECOND * 10)} > .01X</button>
           <button disabled={timeScale == TimeScale.MILLISECOND} onClick={() => setTimeScale(TimeScale.MILLISECOND)}> 1X</button>
           <button disabled={timeScale == TimeScale.SECOND} onClick={() => setTimeScale(TimeScale.SECOND)}> 1000X</button>
         </div>

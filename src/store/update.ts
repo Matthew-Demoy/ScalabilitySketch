@@ -15,11 +15,15 @@ const createUpdateHelpers = (set : StoreSet, get: StoreGet) => {
             })
         })
     }
-    const updateProcessNode = (processNode : Node<ProcessData>) => {
-        const nodeCounter = get().nodeCounter
-        processNode.data.processes.set(nodeCounter, { t: 0, status: TaskStatus.PROCESS_IN, callIndex: 0 })
+    const updateProcessNode = (processNode : Node<ProcessData>, update : UpdateNode) => {
+        const process = processNode.data.processes.get(update.id)        
+        processNode.data.processes.set(update.id, 
+            { t: 0, status: TaskStatus.PROCESS_IN, 
+            callIndex: process ? process.callIndex + 1 : 0, 
+            callingEdge: process ? process.callingEdge : update.creatingId,
+            callingProcess: process ? process.callingProcess : update.templateName
+        })
         updateNode(processNode)
-        
     }
 
     const updateDatabaseNode = (databaseNode : Node<DatabaseData>, update : UpdateNode) => {
@@ -29,7 +33,9 @@ const createUpdateHelpers = (set : StoreSet, get: StoreGet) => {
 
         const existingTask = newTasks.get(update.id)
 
-        newTasks.set(update.id, { id: update.id, t: 0, status, templateName : update.templateName, callingEdge: existingTask ? existingTask.callingEdge : update.creatingId });
+        newTasks.set(update.id, { id: update.id, 
+            t: 0, status, 
+            templateName : update.templateName, callingEdge: existingTask ? existingTask.callingEdge : update.creatingId });
         databaseNode.data.tasks = newTasks;
 
         updateNode(databaseNode)

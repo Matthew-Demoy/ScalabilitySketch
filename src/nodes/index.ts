@@ -1,5 +1,5 @@
 import { Node } from 'reactflow';
-import { AddUser, ClientData, Component, DatabaseData, GetOrg, GetUser, ProcessData, ServerData } from './types';
+import { AddUser, ClientData, Component, DatabaseData, GetOrg, GetUser, Process, ProcessData, ServerData } from './types';
 import { TimeScale } from '../core/time';
 import '../index.css'
 import {Direction as CallDirection} from './types'
@@ -27,18 +27,28 @@ const endNodeData : DatabaseData = {
   total: 0
 }
 
+const getOrgProcess : Process = {
+  t : 0,
+  callIndex : 0,
+  status : 0,
+  callingEdge : 'addUser-1',
+  callingProcess : AddUser
+}
+
+
 export const processNodeData : ProcessData = {
   displayName : 'Add User',
   key : AddUser,
   memory: 100,
   time: 100,  
   calls: [
+
     {
-      query: 'addUser',
-      direction: CallDirection.DOWN
+      query: 'getOrg',
+      direction: CallDirection.RIGHT
     }
   ],
-  processes: new Map()
+  processes: new Map([[0 , getOrgProcess]])
 }
 
 export const orgProcessNodeData : ProcessData = {
@@ -55,7 +65,21 @@ export const orgProcessNodeData : ProcessData = {
   processes: new Map()
 }
 
+orgProcessNodeData.processes.set(0, getOrgProcess)
 
+const orgProcessDataEmpty = {
+  displayName: 'Get Org',
+  key : GetOrg,
+  memory: 100,
+  time: 100,  
+  calls: [
+    {
+      query: 'getOrg',
+      direction: CallDirection.DOWN
+    }
+  ],
+  processes: new Map()
+}
 
 export enum NodeType {
   CLIENT = 'client',
@@ -109,7 +133,7 @@ export default [
   {
     id: '8',
     type: NodeType.PROCESS,
-    data: orgProcessNodeData,
+    data: orgProcessDataEmpty,
     position: { x: 20, y: 60 },
     parentNode: '5',
     extent: 'parent',

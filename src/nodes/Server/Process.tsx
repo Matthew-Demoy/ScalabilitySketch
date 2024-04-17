@@ -1,7 +1,7 @@
 import { Connection, NodeProps, Edge } from 'reactflow';
 import '../../index.css'
-import useStore from '../../store/store';
-import { AddUser, ProcessData } from '../types';
+import useStore, { RFState } from '../../store/store';
+import { AddUser, ProcessData, isProcessNode } from '../types';
 import { NodeType } from '..';
 import { EdgeData, Message } from '../../edges/types';
 import { TimeScale } from '../../core/time';
@@ -11,7 +11,7 @@ function Process({ id, data }: NodeProps<ProcessData>) {
     const nodes = useStore((state) => state.nodes);
     const onConnect = useStore((state) => state.onConnect);
     const [call, setCall] = useState('');
-    
+
     const handleIsValidConnection = (connection: Connection): boolean => {
         const match = nodes.find((node) => node.id === connection.target)
 
@@ -35,45 +35,58 @@ function Process({ id, data }: NodeProps<ProcessData>) {
         LEFT = 'left',
         RIGHT = 'right'
     }
-    
-    const changeDirection = (direction: Direction) => {
-        if(direction === Direction.DOWN) {
-            return Direction.LEFT
-        } else if(direction === Direction.LEFT) {
-            return Direction.UP
-        } else if(direction === Direction.UP) {
-            return Direction.RIGHT
+
+    const changeDirection = (direction: Direction, index: number) => {
+        let newDirection: Direction = Direction.DOWN;
+        if (direction === Direction.DOWN) {
+            newDirection = Direction.LEFT;
+        } else if (direction === Direction.LEFT) {
+            newDirection = Direction.UP;
+        } else if (direction === Direction.UP) {
+            newDirection = Direction.RIGHT;
         }
-        return Direction.DOWN
+
+        // Update the direction in the Zustand store
+        useStore.setState((state: RFState) => {
+            return {
+                ...state,
+                nodes: state.nodes.map((node) => {
+                    if (node.id === id && isProcessNode(node)) {
+                        node.data.calls[index].direction = newDirection;
+                    }
+                    return node;
+                })
+            }
+        })
     }
-    
+
     const getArrows = (direction: Direction) => {
-        if(direction === Direction.DOWN) {
+        if (direction === Direction.DOWN) {
             return '↓'
-        } else if(direction === Direction.LEFT) {
+        } else if (direction === Direction.LEFT) {
             return '←'
-        } else if(direction === Direction.UP) {
+        } else if (direction === Direction.UP) {
             return '↑'
         }
         return '→'
     }
 
-    const getDirectionButton = (direction: Direction) => {
+    const getDirectionButton = (direction: Direction, index: number) => {
         return (
-            <button onClick={() => changeDirection(direction)}>
+            <button onClick={() => changeDirection(direction, index)}>
                 {getArrows(direction)}
             </button>
         )
     }
 
-    const handleRemoveClick = (index : number) => {
+    const handleRemoveClick = (index: number) => {
         data.calls.splice(index, 1)
     }
-        
+
     const calls = data.calls.map((call, index) => {
         return (
             <div key={index}>
-                {index + 1}. {call.query}  {getDirectionButton(call.direction)} 
+                {index + 1}. {call.query}  {getDirectionButton(call.direction, index)}
                 <button onClick={() => handleRemoveClick(index)}>x</button>
             </div>
         )
@@ -91,7 +104,7 @@ function Process({ id, data }: NodeProps<ProcessData>) {
     return (
         <div className='componentBorder'>
             <b>
-               {data.displayName}
+                {data.displayName}
             </b>
             <br></br>
             <button className='proccessToggle'>
@@ -101,14 +114,14 @@ function Process({ id, data }: NodeProps<ProcessData>) {
                 {data.time} MS
             </button>
             {calls}
-            
+
             <div>
-                <input 
-                    type='text' 
-                    placeholder='Query' 
-                    value={call} 
+                <input
+                    type='text'
+                    placeholder='Query'
+                    value={call}
                     onChange={e => setCall(e.target.value)}
-                    style={{width: '50%'}}
+                    style={{ width: '50%' }}
                 />
                 <button disabled={!call} onClick={handleAddCall}>
                     + Call
