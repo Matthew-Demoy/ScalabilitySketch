@@ -15,7 +15,7 @@ import ReactFlow, {
 
 import initialNodes from '../nodes/index';
 import initialEdges from '../edges/index';
-import { AddUser, Direction, Process, Thread } from '../nodes/types';
+import { AddUser, Direction, Process, Thread, ThreadStatus } from '../nodes/types';
 import { EdgeData, Message } from '../edges/types';
 import { TimeScale } from '../core/time';
 import { defaultProcesses, defaultThreads } from './initialState';
@@ -36,7 +36,6 @@ export type RFState = {
     startSimulation: () => void;
     resetSimulation: () => void;
     tick: () => void;
-    recievePacket: (update: UpdateNode) => void;
     incrementGlobalCounter: () => void;
     time: number;
     timeScale: TimeScale;
@@ -52,6 +51,7 @@ export type RFState = {
 export type StoreSet = (partial: RFState | Partial<RFState> | ((state: RFState) => RFState | Partial<RFState>), replace?: boolean | undefined) => void
 export type StoreGet = () => RFState
 
+console.log("zustand create", create)
 // this is our useStore hook that we can use in our components to get parts of the store and call actions
 const useStore = create<RFState>((set, get) => {
 
@@ -63,12 +63,12 @@ const useStore = create<RFState>((set, get) => {
             return
         }
         
-        const node = get().nodes.find((node) => node.id == process.nodeId)
-        if(!node){
-            console.log("Node not found")
+        const processNode = get().nodes.find((node) => node.id == process.nodeId)
+        if(!processNode){
+            console.log("Process Node not found")
             return
         }
-        const parentNode = get().nodes.find((node) => node.id == node.data.parentNode)
+        const parentNode = get().nodes.find((node) => node.id == processNode.parentNode)
         if(!parentNode){
             console.log("Parent Node not found")
             return
@@ -79,7 +79,7 @@ const useStore = create<RFState>((set, get) => {
     const getEdgeBetweenNodes = (nodeId1 : string, nodeId2 : string) => {
         const edge = get().edges.find((edge) => (edge.source == nodeId1 && edge.target == nodeId2) ||  edge.source == nodeId2 && edge.target == nodeId1)
         if(!edge){
-            console.log("Edge not found")
+            console.log("Edge not found for" + nodeId1 + " and " + nodeId2)
             return
         }
         return edge
@@ -88,7 +88,7 @@ const useStore = create<RFState>((set, get) => {
     const getEdgeForDirection = (nodeId : string, direction : Direction) => {
         const edge = get().edges.find((edge) => edge.id.includes(`${nodeId}_${direction}`))
         if(!edge){
-            console.log("Edge not found")
+            console.log("Edge not found for nodeId " + nodeId + " and direction " + direction)
             return
         }
         return edge
@@ -232,15 +232,18 @@ const useStore = create<RFState>((set, get) => {
             })
         },
         createThread : (callingThreadId : number, destinationNodeId : string, processKey : string) => {
-            const process = get().processes.find((process) => process.key == processKey && process.nodeId == destinationNodeId)
+            
+            const processNodeIds = new Set(get().nodes.filter(node => node.parentNode == destinationNodeId).map(node => node.id));
+            const process = get().processes.find(process => processNodeIds.has(process.nodeId) && process.key == processKey);
+
             if(!process){
-                console.log("Process not found")
+                console.log("Process not found", processKey, destinationNodeId, get().processes)
                 return
             }
             const thread : Thread = {
                 threadID: get().globalCounter,
                 callingThreadId: callingThreadId,
-                status : TaskStatus.RUNNING,
+                status : ThreadStatus.RUNNING,
                 programCounter : 0,
                 processId : process.id
             }
@@ -269,11 +272,10 @@ const useStore = create<RFState>((set, get) => {
             const { threads, messages, processes, nodes, edges } = get()
             const {createMessage} = get()
             let updates = [];
-            
             for(let i = 0; i < threads.length; i++){
                 const thread = threads[i]
                 //skip if the thread is waiting
-                if(thread.status == TaskStatus.WAITING){
+                if(thread.status == ThreadStatus.WAITING){
                     continue
                 }
                 const process = processes.find((process) => process.id == thread.processId)
@@ -318,7 +320,7 @@ const useStore = create<RFState>((set, get) => {
                         console.log("Parent Node not found")
                         continue
                     }
-                    const edge = getEdgeForDirection(process.nodeId, subProcess.direction)
+                    const edge = getEdgeForDirection(parentNode.id, subProcess.direction)
                     if(!edge){
                         console.log("Edge not found")
                         continue
@@ -328,7 +330,7 @@ const useStore = create<RFState>((set, get) => {
                     set({
                         threads: threads.map((curr) => {
                             if(curr.threadID == thread.threadID){
-                                return {...curr, status: TaskStatus.WAITING};
+                                return {...curr, status: ThreadStatus.WAITING};
                             }
                             return curr;
                         })
@@ -368,10 +370,12 @@ const useStore = create<RFState>((set, get) => {
                 }                                
             }
             
+            console.log(updates)
             for(let i = 0; i < updates.length; i++){
                 updates[i]()
             }
         }})
 });
 
+console.log("useStore here", useStore)
 export default useStore;

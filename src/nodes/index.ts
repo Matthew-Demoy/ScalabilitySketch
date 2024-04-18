@@ -97,6 +97,7 @@ export default [
     id: 's1',
     type: NodeType.SERVER,
     position: { x: 0, y: -100 },
+    className: 'componentBorder server'
   },
   {
     id: 'p1',
@@ -109,7 +110,7 @@ export default [
   {
     id: 's2',
     type: NodeType.SERVER,
-    position: { x: 0, y: 125 },
+    position: { x: 0, y: 225 },
     className: 'componentBorder server'
   },
   {
@@ -117,6 +118,19 @@ export default [
     type: NodeType.PROCESS,
     position: { x: 20, y: 60 },
     parentNode: 's2',
+    extent: 'parent',
+  },
+  {
+    id: 's3',
+    type: NodeType.SERVER,
+    position: { x: 400, y: 225 },
+    className: 'componentBorder server'
+  },
+  {
+    id: 'p3',
+    type: NodeType.PROCESS,
+    position: { x: 20, y: 60 },
+    parentNode: 's3',
     extent: 'parent',
   },
 ] as Node[];
