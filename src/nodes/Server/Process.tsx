@@ -1,17 +1,21 @@
 import { Connection, NodeProps, Edge } from 'reactflow';
 import '../../index.css'
 import useStore, { RFState } from '../../store/store';
-import { AddUser, ProcessData, isProcessNode } from '../types';
 import { NodeType } from '..';
 import { EdgeData, Message } from '../../edges/types';
 import { TimeScale } from '../../core/time';
 import { useState } from 'react';
 
-function Process({ id, data }: NodeProps<ProcessData>) {
+function Process({ id, data }: NodeProps<undefined>) {
     const nodes = useStore((state) => state.nodes);
     const onConnect = useStore((state) => state.onConnect);
     const [call, setCall] = useState('');
+    const process = useStore(state => state.processes.find(process => process.nodeId === id))
+    
+    if(!process) return null;
 
+
+    
     const handleIsValidConnection = (connection: Connection): boolean => {
         const match = nodes.find((node) => node.id === connection.target)
 
@@ -80,10 +84,10 @@ function Process({ id, data }: NodeProps<ProcessData>) {
     }
 
     const handleRemoveClick = (index: number) => {
-        data.calls.splice(index, 1)
+        process.subProcess.splice(index, 1)
     }
 
-    const calls = data.calls.map((call, index) => {
+    const calls = process.subProcess.map((call, index) => {
         return (
             <div key={index}>
                 {index + 1}. {call.query}  {getDirectionButton(call.direction, index)}
@@ -97,21 +101,21 @@ function Process({ id, data }: NodeProps<ProcessData>) {
             query: call,
             direction: Direction.DOWN
         }
-        data.calls.push(newCall);
+        process.subProcess.push(newCall);
         setCall(''); // clear the input
     }
 
     return (
         <div className='componentBorder'>
             <b>
-                {data.displayName}
+                {process.displayName}
             </b>
             <br></br>
             <button className='proccessToggle'>
-                {data.memory} KB
+                {process.memory} KB
             </button>
             <button className='proccessToggle'>
-                {data.time} MS
+                {process.time} MS
             </button>
             {calls}
 

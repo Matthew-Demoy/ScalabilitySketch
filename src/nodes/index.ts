@@ -1,71 +1,75 @@
 import { Node } from 'reactflow';
-import { AddUser, ClientData, Component, DatabaseData, GetOrg, GetUser, Process, ProcessData, ServerData } from './types';
+import { AddUser, GetOrg, GetUser, Process } from './types';
 import { TimeScale } from '../core/time';
 import '../index.css'
 import {Direction as CallDirection} from './types'
 
-const spawnNodeData : ClientData =  {
-  tasks: new Map(),
-  features : {
-    [AddUser]: {
-      callsPerDay : 86400000000 / 86400000000
-    },
-    [GetUser]: {
-      callsPerDay : 86400000000
-    },
-  },
-  componentName: Component.CLIENT
-}
-const pipeNodeData : ServerData = {
-  tasks: new Map(),
-  componentName: Component.SERVER,
-  latency: 50 * TimeScale.MICROSECOND
-}
-const endNodeData : DatabaseData = {
-  tasks: new Map(),
-  componentName: Component.DATABASE,
-  total: 0
-}
-
-const getOrgProcess : Process = {
-  t : 0,
-  callIndex : 0,
-  status : 0,
-  callingEdge : 'addUser-1',
-  callingProcess : AddUser
-}
-
-
-export const processNodeData : ProcessData = {
+const addUserClient : Process = {
+  nodeId: 'p1',
   displayName : 'Add User',
   key : AddUser,
   memory: 100,
-  time: 100,  
-  calls: [
-
+  time: 5,
+  storage : 0,
+  subProcess: [
     {
-      query: 'getOrg',
-      direction: CallDirection.RIGHT
-    }
-  ],
-  processes: new Map([[0 , getOrgProcess]])
-}
-
-export const orgProcessNodeData : ProcessData = {
-  displayName: 'Get Org',
-  key : GetOrg,
-  memory: 100,
-  time: 100,  
-  calls: [
-    {
-      query: 'getOrg',
+      query: AddUser,
       direction: CallDirection.DOWN
     }
-  ],
-  processes: new Map()
+  ]
 }
 
-orgProcessNodeData.processes.set(0, getOrgProcess)
+const addUserProcess : Process = {
+  nodeId: 'p2',
+  displayName : 'Add User',
+  key : AddUser,
+  memory: 100,
+  storage : 0,
+  time: 5,
+  subProcess: [
+    {
+      query: GetOrg,
+      direction: CallDirection.RIGHT
+    },
+    {
+      query: AddUser,
+      direction: CallDirection.DOWN
+    }
+  ]
+}
+
+const getOrgProcess : Process = {
+  displayName : 'Get Org',
+  key : GetOrg,
+  memory: 100,
+  time: 5,
+  storage : 0,
+  subProcess: [
+    {
+      query: GetOrg,
+      direction: CallDirection.DOWN
+    }
+  ]
+}
+
+const getOrgDatabaseProcess : Process = {
+  displayName : 'Get Org',
+  key : GetOrg,
+  memory: 0,
+  time: 5,
+  storage : 0,
+  subProcess: []
+}
+  
+const addUserDatabase : Process = {
+  displayName : 'Add User',
+  key : AddUser,
+  memory: 0,
+  storage : 100,
+  time: 5,
+  subProcess: []
+}
+
 
 const orgProcessDataEmpty = {
   displayName: 'Get Org',
@@ -90,52 +94,29 @@ export enum NodeType {
 
 export default [
   {
-    id: '1',
-    type: NodeType.CLIENT,
-    data: spawnNodeData,
+    id: 's1',
+    type: NodeType.SERVER,
     position: { x: 0, y: -100 },
   },
   {
-    id: '2',
+    id: 'p1',
+    type: NodeType.PROCESS,
+    position: { x: 20, y: 60 },
+    parentNode: 's1',
+    extent: 'parent',
+  },
+
+  {
+    id: 's2',
     type: NodeType.SERVER,
-    data: pipeNodeData,
     position: { x: 0, y: 125 },
     className: 'componentBorder server'
   },
   {
-    id: '3',
-    type: NodeType.DATABASE,
-    data: endNodeData,
-    position: { x: 0, y: 450 },
-  },
-
-  {
-    id: '5',
-    type: NodeType.SERVER,
-    data: pipeNodeData,
-    position: { x: 250, y: 125 },
-    className: 'componentBorder server'
-  },
-  {
-    id: '6',
-    type: NodeType.DATABASE,
-    data: endNodeData,
-    position: { x: 250, y: 450 },
-  },
-  {
-    id: '7',
+    id: 'p2',
     type: NodeType.PROCESS,
-    data: processNodeData,
     position: { x: 20, y: 60 },
-    parentNode: '2',
-    extent: 'parent',
-  },
-  {
-    id: '8',
-    type: NodeType.PROCESS,
-    data: orgProcessDataEmpty,
-    position: { x: 20, y: 60 },
-    parentNode: '5',
+    parentNode: 's2',
     extent: 'parent',
   },
 ] as Node[];

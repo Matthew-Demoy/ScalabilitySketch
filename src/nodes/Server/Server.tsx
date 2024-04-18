@@ -1,7 +1,7 @@
 import { Connection, Handle, NodeProps, Position, Edge, NodeResizer, useUpdateNodeInternals } from 'reactflow';
 import '../../index.css'
 import useStore from '../../store/store';
-import { Direction, NodeData, ProcessData, ServerData, isEndNode, isPipeNode, isProcessNode } from '../types';
+import { Direction } from '../types';
 import { NodeType } from '..';
 import { EdgeData, Message } from '../../edges/types';
 import { TimeScale } from '../../core/time';
@@ -9,9 +9,11 @@ import "./Server.css"
 import { memo, useEffect } from 'react';
 import { Node } from 'reactflow';
 
-function Server({ id, data, selected }: NodeProps<ServerData>) {
+function Server({ id, data, selected }: NodeProps<undefined>) {
   const nodes = useStore((state) => state.nodes);
   const onConnect = useStore((state) => state.onConnect);
+  const process = useStore(state => state.processes. find(process => process.nodeId === id))
+  
 
   const handleIsValidConnection = (connection: Connection): boolean => {
     const match = nodes.find((node) => node.id === connection.target)
@@ -23,7 +25,7 @@ function Server({ id, data, selected }: NodeProps<ServerData>) {
   const updateNodeInternals = useUpdateNodeInternals();
 
   useEffect(() => {
-    updateNodeInternals(id);
+  updateNodeInternals(id);
   }, [id, updateNodeInternals]);
 
 
@@ -40,27 +42,7 @@ function Server({ id, data, selected }: NodeProps<ServerData>) {
 
     onConnect(Edge)
   }
-  const children = nodes.filter((node): node is Node<ProcessData> => node.type === NodeType.PROCESS && node.parentNode === id)
 
-  let leftHandle = false;
-  let rightHandle = false;
-  let topHandle = false;
-  let bottomHandle = false;
-
-  children.forEach((child) => {
-    child.data.calls.forEach((call) => {
-      if (call.direction === "up") {
-        topHandle = true;
-      } else if (call.direction === "down") {
-        bottomHandle = true;
-      } else if (call.direction === "left") {
-        leftHandle = true;
-      } else if (call.direction === "right") {
-        rightHandle = true;
-      }
-    })
-  })
-  
   return (
     <>
       <NodeResizer color="#ff0071" isVisible={selected} minWidth={100} minHeight={30} />

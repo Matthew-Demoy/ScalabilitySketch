@@ -1,7 +1,6 @@
 import { FC } from 'react';
 import { EdgeProps, getBezierPath, EdgeLabelRenderer, BaseEdge, getSmoothStepPath } from 'reactflow';
-import { Direction, EdgeData } from './types';
-import { Component, TemplateLibrary, isProcessNode } from '../nodes/types';
+import { EdgeData } from './types';
 import useStore from '../store/store';
 
 const Transfer: FC<EdgeProps<EdgeData>> = ({

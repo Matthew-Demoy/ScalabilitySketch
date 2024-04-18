@@ -13,7 +13,6 @@ import Transfer from './edges/Transfer';
 import { TimeScale, displayTime } from './core/time';
 import NodeInfoList from './components/nodesInfoList';
 import AddComponent from './components/addComponent';
-import { Component } from './nodes/types';
 import TaskView from './components/taskView';
 import Process from './nodes/Server/Process';
 
@@ -30,17 +29,13 @@ const selector = (state: RFState) => ({
   setTimeScale: state.updateTimeScale,
   timeScale: state.timeScale,
   setNodes: state.setNodes,
-  taskLibrary: state.taskLibrary,
-  modifyTasks: state.modifyTasks,
-  modifyFeaturesForClient: state.modifyFeaturesForClient
 });
 
 function Flow() {
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, time, setTimeScale, timeScale, setNodes, taskLibrary, modifyTasks, modifyFeaturesForClient } = useStore(
+  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, time, setTimeScale, timeScale, setNodes, } = useStore(
     useShallow(selector),
   );
 
-  const features = Array.from(taskLibrary.keys()).map((task) => task)
   const { isRunning, tick } = useStore()
 
   const [reactFlowInstance, setReactFlowInstance] = useState(null as ReactFlowInstance | null);
@@ -64,7 +59,7 @@ function Flow() {
   const [isTaskViewOpen, setIsTaskViewOpen] = useState(false);
 
 
-  const handleAddComponent = (choice: Component) => {
+  const handleAddComponent = (choice: any) => {
 
     const component = {
       id: (nodes.length + 1).toString(),
@@ -95,23 +90,6 @@ function Flow() {
         {isRunning ? <button className={'stopButton'} onClick={() => useStore.getState().resetSimulation()}>Stop</button>
           : <button className={'startButton'} onClick={() => useStore.getState().startSimulation()}>Start</button>}
 
-        <NodeInfoList  nodes={nodes} features={features} modifyFeaturesForClient={modifyFeaturesForClient}/>
-        <AddComponent addComponent={(choice) => handleAddComponent(choice)} />
-
-        <div className='dropdown-button-container'>
-          <h2>
-            Tasks
-
-          </h2>
-          <button onClick={() => setIsTaskViewOpen(!isTaskViewOpen)}>
-              {isTaskViewOpen ? '\\/' : '<'}
-            </button>
-
-        </div>
-        {isTaskViewOpen && (
-            <TaskView taskLibrary={taskLibrary} modifyTasks={modifyTasks} />
-          )}
-       
       </div>
       <ReactFlow
         nodes={nodes}
