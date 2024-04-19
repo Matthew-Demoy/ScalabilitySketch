@@ -45,21 +45,31 @@ const addUserClient : Process = {
     time: 5,
     storage : 0,
     subProcess: [
-      {
-        query: GetOrg,
-        direction: Direction.DOWN
-      }
     ]
   }
 
+  const addUserDatabase : Process = {
+    nodeId: 'p4',
+    id : 'p4',
+    displayName : 'Persist User',
+    key : AddUser,
+    memory: 100,
+    time: 5,
+    storage : 500,
+    subProcess: [      
+    ]
+  }
+
+
   
-export const defaultProcesses = [ addUserClient, addUserProcess, getOrgProcess]
+export const defaultProcesses = [ addUserClient, addUserProcess, getOrgProcess, addUserDatabase]
 
 const thread : Thread = {
     threadID: 0,
     status: ThreadStatus.RUNNING,
     programCounter: 0,
     processId: 'p1',
+    callingThreadId: null,
 }
 
-export const defaultThreads = [thread]
+export const defaultThreads = []

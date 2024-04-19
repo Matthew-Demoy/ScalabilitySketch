@@ -15,7 +15,7 @@ export enum ThreadStatus {
 }
 export interface Thread {
     threadID: number,
-    callingThreadId ?: number,
+    callingThreadId : number | null,
     status : ThreadStatus,
     programCounter : number,
     processId : string

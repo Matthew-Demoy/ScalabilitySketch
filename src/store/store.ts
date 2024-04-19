@@ -8,7 +8,6 @@ import ReactFlow, {
     addEdge,
     OnNodesChange,
     OnEdgesChange,
-    OnConnect,
     applyNodeChanges,
     applyEdgeChanges,
 } from 'reactflow';
@@ -40,85 +39,100 @@ export type RFState = {
     time: number;
     timeScale: TimeScale;
     updateTimeScale: (scale: TimeScale) => void;
-    threads : Thread[],
-    messages : Message[],
-    processes : Process[],
-    createMessage : (threadId : number, edgeId : string, callingNodeId : string, processKey : string, isResponse : boolean) => void
-    createThread : (callingThreadId : number, destinationNodeId : string, processKey : string)  => void
-    updateThread : (threadId : number) => void
+    threads: Thread[],
+    messages: Message[],
+    processes: Process[],
+    createMessage: (threadId: number, edgeId: string, callingNodeId: string, processKey: string, isResponse: boolean) => void
+    createThread: (callingThreadId: number | null, destinationNodeId: string, processKey: string) => void
+    updateThread: (threadId: number) => void
+    updateProcess : (process: Process) => void
+    resetState : () => void
 };
 
 export type StoreSet = (partial: RFState | Partial<RFState> | ((state: RFState) => RFState | Partial<RFState>), replace?: boolean | undefined) => void
 export type StoreGet = () => RFState
 
-console.log("zustand create", create)
+type InitialState = {
+    processes: Process[],
+    threads: Thread[],
+    messages: Message[],
+    nodes: Node<undefined>[],
+    edges: Edge<EdgeData>[],
+
+}
+
+const initialState : InitialState = {
+    processes: defaultProcesses,
+    threads: defaultThreads,
+    messages: [],
+    nodes: initialNodes,
+    edges: initialEdges,
+}
+
 // this is our useStore hook that we can use in our components to get parts of the store and call actions
 const useStore = create<RFState>((set, get) => {
 
-    
-    const getParentNodeForThread = (thread : Thread) => {
+    const getParentNodeForThread = (thread: Thread) => {
         const process = get().processes.find((process) => process.id == thread.processId)
-        if(!process){
+        if (!process) {
             console.log("Process not found")
             return
         }
-        
+
         const processNode = get().nodes.find((node) => node.id == process.nodeId)
-        if(!processNode){
+        if (!processNode) {
             console.log("Process Node not found")
             return
         }
         const parentNode = get().nodes.find((node) => node.id == processNode.parentNode)
-        if(!parentNode){
+        if (!parentNode) {
             console.log("Parent Node not found")
             return
         }
         return parentNode
     }
 
-    const getEdgeBetweenNodes = (nodeId1 : string, nodeId2 : string) => {
-        const edge = get().edges.find((edge) => (edge.source == nodeId1 && edge.target == nodeId2) ||  edge.source == nodeId2 && edge.target == nodeId1)
-        if(!edge){
+    const getEdgeBetweenNodes = (nodeId1: string, nodeId2: string) => {
+        const edge = get().edges.find((edge) => (edge.source == nodeId1 && edge.target == nodeId2) || edge.source == nodeId2 && edge.target == nodeId1)
+        if (!edge) {
             console.log("Edge not found for" + nodeId1 + " and " + nodeId2)
             return
         }
         return edge
     }
 
-    const getEdgeForDirection = (nodeId : string, direction : Direction) => {
+    const getEdgeForDirection = (nodeId: string, direction: Direction) => {
         const edge = get().edges.find((edge) => edge.id.includes(`${nodeId}_${direction}`))
-        if(!edge){
+        if (!edge) {
             console.log("Edge not found for nodeId " + nodeId + " and direction " + direction)
             return
         }
         return edge
     }
 
-
-
-    const getEdgeByThread = (thread : Thread ) => {
+    const getEdgeByThread = (thread: Thread) => {
         const process = get().processes.find((process) => process.id == thread.processId)
-        if(!process){
+        if (!process) {
             console.log("Process not found")
             return
         }
-        
+
         const node = get().nodes.find((node) => node.id == process.nodeId)
-        if(!node){
+        if (!node) {
             console.log("Node not found")
             return
         }
         const parentNode = get().nodes.find((node) => node.id == node.data.parentNode)
-        if(!parentNode){
+        if (!parentNode) {
             console.log("Parent Node not found")
             return
         }
-        
+
         const direction = process.subProcess[thread.programCounter].direction
         const edge = get().edges.find((edge) => edge.id == `${parentNode.id}-${direction}`)
 
-        
-        if(!edge){
+
+        if (!edge) {
             console.log("Edge not found")
             return
         }
@@ -129,9 +143,9 @@ const useStore = create<RFState>((set, get) => {
         };
     }
 
-    const getEdgeByCallingThreadId = (threadId : number) => {
+    const getEdgeByCallingThreadId = (threadId: number) => {
         const thread = get().threads.find((thread) => thread.threadID == threadId)
-        if(!thread){
+        if (!thread) {
             console.log("Thread not found")
             return
         }
@@ -139,13 +153,27 @@ const useStore = create<RFState>((set, get) => {
     }
 
     return ({
+        ...initialState,
         globalCounter: 0,
-        nodes: initialNodes,
-        edges: initialEdges,
         isRunning: false,
         generators: [],
         time: 0,
-        timeScale : TimeScale.MILLISECOND,
+        timeScale: TimeScale.MILLISECOND,
+        resetState: () => {
+            set({
+                ...initialState
+            })
+        },
+        updateProcess : (process: Process) => {
+            set({
+                processes: get().processes.map((curr) => {
+                    if (curr.id == process.id) {
+                        return process
+                    }
+                    return curr
+                })
+            })
+        },
         onNodesChange: (changes: NodeChange[]) => {
             set({
                 nodes: applyNodeChanges(changes, get().nodes),
@@ -197,6 +225,7 @@ const useStore = create<RFState>((set, get) => {
             });
         },
         startSimulation: () => {
+            console.log("Starting simulation")
             set({ isRunning: true });
         },
         resetSimulation: () => {
@@ -208,60 +237,57 @@ const useStore = create<RFState>((set, get) => {
         updateTimeScale: (scale: TimeScale) => {
             set({ timeScale: scale });
         },
-        threads : defaultThreads,
-        messages : [],
-        processes : defaultProcesses,
-        createMessage : (threadId : number, edgeId : string, callingNodeId : string, processKey : string, isResponse : boolean) => {
+        createMessage: (threadId: number, edgeId: string, callingNodeId: string, processKey: string, isResponse: boolean) => {
             const edge = get().edges.find((edge) => edge.id == edgeId)
-            if(!edge){
+            if (!edge) {
                 console.log("Edge not found")
                 return
             }
             const destinationNodeId = edge.source == callingNodeId ? edge.target : edge.source
 
-            const message : Message = {
+            const message: Message = {
                 edgeId,
                 destinationNodeId,
                 processKey,
-                time : 0,
-                callingThreadId : threadId,
+                time: 0,
+                callingThreadId: threadId,
                 isResponse
             }
             set({
                 messages: [...get().messages, message]
             })
         },
-        createThread : (callingThreadId : number, destinationNodeId : string, processKey : string) => {
-            
+        createThread: (callingThreadId: number | null, destinationNodeId: string, processKey: string) => {
+
             const processNodeIds = new Set(get().nodes.filter(node => node.parentNode == destinationNodeId).map(node => node.id));
             const process = get().processes.find(process => processNodeIds.has(process.nodeId) && process.key == processKey);
 
-            if(!process){
+            if (!process) {
                 console.log("Process not found", processKey, destinationNodeId, get().processes)
                 return
             }
-            const thread : Thread = {
+            const thread: Thread = {
                 threadID: get().globalCounter,
                 callingThreadId: callingThreadId,
-                status : ThreadStatus.RUNNING,
-                programCounter : 0,
-                processId : process.id
+                status: ThreadStatus.RUNNING,
+                programCounter: 0,
+                processId: process.id
             }
             set({
                 threads: [...get().threads, thread]
             })
             get().incrementGlobalCounter()
         },
-        updateThread : (threadId : number) => {
+        updateThread: (threadId: number) => {
             const thread = get().threads.find((thread) => thread.threadID == threadId)
-            if(!thread){
+            if (!thread) {
                 console.log("Thread not found")
                 return
             }
             set({
                 threads: get().threads.map((thread) => {
-                    if(thread.threadID == threadId){
-                        thread.status = TaskStatus.RUNNING
+                    if (thread.threadID == threadId) {
+                        thread.status = ThreadStatus.RUNNING
                         thread.programCounter++
                     }
                     return thread
@@ -270,67 +296,68 @@ const useStore = create<RFState>((set, get) => {
         },
         tick: () => {
             const { threads, messages, processes, nodes, edges } = get()
-            const {createMessage} = get()
+            const { createMessage } = get()
             let updates = [];
-            for(let i = 0; i < threads.length; i++){
+            for (let i = 0; i < threads.length; i++) {
                 const thread = threads[i]
                 //skip if the thread is waiting
-                if(thread.status == ThreadStatus.WAITING){
+                if (thread.status == ThreadStatus.WAITING) {
                     continue
                 }
                 const process = processes.find((process) => process.id == thread.processId)
-                if(!process){
+                if (!process) {
                     console.log("Process not found")
                     continue
                 }
                 //respond to the calling thread if current thread is complete
-                if(thread.programCounter >= process.subProcess.length){                    
-                    if(thread.callingThreadId){
-                        const callingThread = threads.find((thread) => thread.threadID == thread.callingThreadId)
-                        if(!callingThread){
+                if (thread.programCounter >= process.subProcess.length) {
+                    if (thread.callingThreadId) {
+                        const callingThread = threads.find((curr) => curr.threadID == thread.callingThreadId)
+                        if (!callingThread) {
                             console.log("Calling thread not found")
                             continue
                         }
-                        const node1 = getParentNodeForThread(thread)    
-                        if(!node1){
+                        const node1 = getParentNodeForThread(thread)
+                        if (!node1) {
                             console.log("Node1 not found")
                             continue
                         }
                         const node2 = getParentNodeForThread(callingThread)
-                        if(!node2){
+                        if (!node2) {
                             console.log("Node2 not found")
                             continue
                         }
                         const edge = getEdgeBetweenNodes(node1.id, node2.id)
-                        if(!edge){
+                        if (!edge) {
                             console.log("Edge not found")
                             continue
                         }
-                        updates.push(() => createMessage(callingThread.threadID ,edge.id, node1.id, process.key, true))
-                    }                                    
+                        updates.push(() => createMessage(callingThread.threadID, edge.id, node1.id, process.key, true))
+                    }
                     //remove the thread since it is done
                     set({
-                        threads: threads.filter((thread) => thread.threadID != thread.threadID)
+                        threads: threads.filter((curr) => curr.threadID != thread.threadID)
                     })
-                }else {
+                } else {
                     //execute the next sub process at the program counter
                     const subProcess = process.subProcess[thread.programCounter]
                     const parentNode = getParentNodeForThread(thread)
-                    if(!parentNode){
+                    if (!parentNode) {
                         console.log("Parent Node not found")
                         continue
                     }
                     const edge = getEdgeForDirection(parentNode.id, subProcess.direction)
-                    if(!edge){
+                    if (!edge) {
                         console.log("Edge not found")
                         continue
                     }
-                    updates.push(() => createMessage(thread.threadID, edge.id, parentNode.id, process.key, false))
+                    const callingProcessKey = process.subProcess[thread.programCounter].query
+                    updates.push(() => createMessage(thread.threadID, edge.id, parentNode.id, callingProcessKey, false))
                     //set status to waiting
                     set({
                         threads: threads.map((curr) => {
-                            if(curr.threadID == thread.threadID){
-                                return {...curr, status: ThreadStatus.WAITING};
+                            if (curr.threadID == thread.threadID) {
+                                return { ...curr, status: ThreadStatus.WAITING };
                             }
                             return curr;
                         })
@@ -338,44 +365,44 @@ const useStore = create<RFState>((set, get) => {
                 }
             }
 
-            for(let i = 0; i < messages.length; i++){
+            for (let i = 0; i < messages.length; i++) {
                 const message = messages[i]
                 const LATENCY = 2;
                 const edge = edges.find((edge) => edge.id == message.edgeId)
-                if(!edge){
+                if (!edge) {
                     console.log("Edge not found")
                     continue
                 }
 
-                if(message.time >= LATENCY){
+                if (message.time >= LATENCY) {
+                    console.log("message is late!")
                     //See if calling threadId is present in the destination node
-                    if(message.isResponse){
+                    if (message.isResponse) {
                         updates.push(() => get().updateThread(message.callingThreadId))
-                    }else{
+                    } else {
                         updates.push(() => get().createThread(message.callingThreadId, message.destinationNodeId, message.processKey))
                     }
                     //remove message
                     set({
                         messages: messages.filter((curr) => curr != message)
                     })
-                }else{
+                } else {
                     set({
                         messages: messages.map((curr) => {
-                            if(curr === message){
-                                return {...curr, time: curr.time + 1};
+                            if (curr === message) {
+                                return { ...curr, time: curr.time + 1 };
                             }
                             return curr;
                         })
                     })
-                }                                
+                }
             }
-            
-            console.log(updates)
-            for(let i = 0; i < updates.length; i++){
+
+            for (let i = 0; i < updates.length; i++) {
                 updates[i]()
             }
-        }})
+        }
+    })
 });
 
-console.log("useStore here", useStore)
 export default useStore;

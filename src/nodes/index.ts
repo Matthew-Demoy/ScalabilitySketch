@@ -133,4 +133,17 @@ export default [
     parentNode: 's3',
     extent: 'parent',
   },
+  {
+    id: 's4',
+    type: NodeType.SERVER,
+    position: { x: 0, y: 525 },
+    className: 'componentBorder server'
+  },
+  {
+    id: 'p4',
+    type: NodeType.PROCESS,
+    position: { x: 20, y: 60 },
+    parentNode: 's4',
+    extent: 'parent',
+  },
 ] as Node[];
