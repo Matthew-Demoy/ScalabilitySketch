@@ -30,7 +30,14 @@ const addUserClient : Process = {
     storage : 0,
     time: 5,
     subProcess: [
-
+      {
+        query: GetOrg,
+        direction: Direction.RIGHT
+      },
+      {
+        query: AddUser,
+        direction: Direction.DOWN
+      }
     ],
     spawnInfo : null
   }

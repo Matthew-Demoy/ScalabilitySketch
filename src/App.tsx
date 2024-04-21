@@ -11,12 +11,10 @@ import Database from './nodes/Database';
 import { useEffect, useState } from 'react';
 import Transfer from './edges/Transfer';
 import { TimeScale, displayTime } from './core/time';
-import NodeInfoList from './components/nodesInfoList';
-import AddComponent from './components/addComponent';
-import TaskView from './components/taskView';
 import Process from './nodes/Server/Process';
+import { ThreadStatus } from './nodes/types';
 
-const nodeTypes = { client: Client, server: Server, database: Database, process: Process};
+const nodeTypes = { client: Client, server: Server, database: Database, process: Process };
 const edgeTypes = { transfer: Transfer }
 
 const selector = (state: RFState) => ({
@@ -29,12 +27,17 @@ const selector = (state: RFState) => ({
   setTimeScale: state.updateTimeScale,
   timeScale: state.timeScale,
   setNodes: state.setNodes,
+  threads: state.threads,
+  messages: state.messages
 });
 
 function Flow() {
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, time, setTimeScale, timeScale, setNodes, } = useStore(
+  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, time, setTimeScale, timeScale, setNodes, threads, messages } = useStore(
     useShallow(selector),
   );
+
+  const runningProcessCount = threads.filter(t => t.status === ThreadStatus.RUNNING).length
+  const requests = threads.filter(t => t.callingThreadId == null).length
 
   const { isRunning, tick } = useStore()
 
@@ -90,11 +93,18 @@ function Flow() {
           <button disabled={timeScale == TimeScale.MILLISECOND} onClick={() => setTimeScale(TimeScale.MILLISECOND)}> 1X</button>
           <button disabled={timeScale == TimeScale.SECOND} onClick={() => setTimeScale(TimeScale.SECOND)}> 1000X</button>
         </div>
-
+        <div>
+          Running Threads {runningProcessCount} / {threads.length}
+          <br />
+          Messages {messages.length}
+          <br />
+          Origin Threads {requests}
+        </div>
         {isRunning ? <button className={'stopButton'} onClick={() => useStore.getState().resetSimulation()}>Stop</button>
           : <button className={'startButton'} onClick={() => useStore.getState().startSimulation()}>Start</button>}
-        {<button disabled={isRunning} onClick={() => handleStepForward()}>Step Forward</button>}        
+        {<button disabled={isRunning} onClick={() => handleStepForward()}>Step Forward</button>}
       </div>
+
       <ReactFlow
         nodes={nodes}
         edges={edges}
