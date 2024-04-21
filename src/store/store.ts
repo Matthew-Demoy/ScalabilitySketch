@@ -154,7 +154,7 @@ const useStore = create<RFState>((set, get) => {
 
     return ({
         ...initialState,
-        globalCounter: 0,
+        globalCounter: 123,
         isRunning: false,
         generators: [],
         time: 0,
@@ -266,6 +266,8 @@ const useStore = create<RFState>((set, get) => {
                 console.log("Process not found", processKey, destinationNodeId, get().processes)
                 return
             }
+
+            console.log("creating thread", get().globalCounter)
             const thread: Thread = {
                 threadID: get().globalCounter,
                 callingThreadId: callingThreadId,
@@ -335,6 +337,7 @@ const useStore = create<RFState>((set, get) => {
                         updates.push(() => createMessage(callingThread.threadID, edge.id, node1.id, process.key, true))
                     }
                     //remove the thread since it is done
+                    console.log("Removing thread", thread.threadID)
                     set({
                         threads: threads.filter((curr) => curr.threadID != thread.threadID)
                     })
@@ -367,7 +370,7 @@ const useStore = create<RFState>((set, get) => {
 
             for (let i = 0; i < messages.length; i++) {
                 const message = messages[i]
-                const LATENCY = 2;
+                const LATENCY = 0;
                 const edge = edges.find((edge) => edge.id == message.edgeId)
                 if (!edge) {
                     console.log("Edge not found")
@@ -375,7 +378,6 @@ const useStore = create<RFState>((set, get) => {
                 }
 
                 if (message.time >= LATENCY) {
-                    console.log("message is late!")
                     //See if calling threadId is present in the destination node
                     if (message.isResponse) {
                         updates.push(() => get().updateThread(message.callingThreadId))
@@ -398,6 +400,8 @@ const useStore = create<RFState>((set, get) => {
                 }
             }
 
+            console.log('threads' ,threads)
+            console.log('messages', messages)
             for (let i = 0; i < updates.length; i++) {
                 updates[i]()
             }

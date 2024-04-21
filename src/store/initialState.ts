@@ -65,11 +65,11 @@ const addUserClient : Process = {
 export const defaultProcesses = [ addUserClient, addUserProcess, getOrgProcess, addUserDatabase]
 
 const thread : Thread = {
-    threadID: 0,
+    threadID: 1,
     status: ThreadStatus.RUNNING,
     programCounter: 0,
     processId: 'p1',
     callingThreadId: null,
 }
 
-export const defaultThreads = []
+export const defaultThreads = [thread]

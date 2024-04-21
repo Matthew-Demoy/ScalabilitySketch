@@ -76,6 +76,10 @@ function Flow() {
 
   }
 
+  const handleStepForward = () => {
+    tick()
+  }
+
   return (
     <span>
       <div className={'buttonContainer'}>
@@ -89,7 +93,7 @@ function Flow() {
 
         {isRunning ? <button className={'stopButton'} onClick={() => useStore.getState().resetSimulation()}>Stop</button>
           : <button className={'startButton'} onClick={() => useStore.getState().startSimulation()}>Start</button>}
-
+        {<button disabled={isRunning} onClick={() => handleStepForward()}>Step Forward</button>}        
       </div>
       <ReactFlow
         nodes={nodes}
