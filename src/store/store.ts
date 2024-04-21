@@ -257,6 +257,15 @@ const useStore = create<RFState>((set, get) => {
                 messages: [...get().messages, message]
             })
         },
+        
+        /**
+         * Calculates the sum of two numbers.
+         *
+         * @param callingThread - Specifies which thread on another process is spawning this one
+         * @param destinationNodeId - The node id of the COMPONENT (parent of the process) that is spawning the thread
+         * @param processKey - The key of the process that is being spawned (AddUser, GetUser, GetOrg, etc.)
+         * @returns void
+         */
         createThread: (callingThreadId: number | null, destinationNodeId: string, processKey: string) => {
 
             const processNodeIds = new Set(get().nodes.filter(node => node.parentNode == destinationNodeId).map(node => node.id));
@@ -267,7 +276,6 @@ const useStore = create<RFState>((set, get) => {
                 return
             }
 
-            console.log("creating thread", get().globalCounter)
             const thread: Thread = {
                 threadID: get().globalCounter,
                 callingThreadId: callingThreadId,
@@ -311,7 +319,6 @@ const useStore = create<RFState>((set, get) => {
                     console.log("Process not found")
                     continue
                 }
-                //respond to the calling thread if current thread is complete
                 if (thread.programCounter >= process.subProcess.length) {
                     if (thread.callingThreadId) {
                         const callingThread = threads.find((curr) => curr.threadID == thread.callingThreadId)
@@ -336,10 +343,8 @@ const useStore = create<RFState>((set, get) => {
                         }
                         updates.push(() => createMessage(callingThread.threadID, edge.id, node1.id, process.key, true))
                     }
-                    //remove the thread since it is done
-                    console.log("Removing thread", thread.threadID)
                     set({
-                        threads: threads.filter((curr) => curr.threadID != thread.threadID)
+                        threads: threads.filter((curr) => curr != thread)
                     })
                 } else {
                     //execute the next sub process at the program counter
@@ -354,11 +359,11 @@ const useStore = create<RFState>((set, get) => {
                         console.log("Edge not found")
                         continue
                     }
-                    const callingProcessKey = process.subProcess[thread.programCounter].query
+                    const callingProcessKey = process.subProcess[thread.programCounter].query                    
                     updates.push(() => createMessage(thread.threadID, edge.id, parentNode.id, callingProcessKey, false))
                     //set status to waiting
                     set({
-                        threads: threads.map((curr) => {
+                        threads: get().threads.map((curr) => {
                             if (curr.threadID == thread.threadID) {
                                 return { ...curr, status: ThreadStatus.WAITING };
                             }
@@ -381,16 +386,16 @@ const useStore = create<RFState>((set, get) => {
                     //See if calling threadId is present in the destination node
                     if (message.isResponse) {
                         updates.push(() => get().updateThread(message.callingThreadId))
-                    } else {
+                    } else {                        
                         updates.push(() => get().createThread(message.callingThreadId, message.destinationNodeId, message.processKey))
                     }
                     //remove message
                     set({
-                        messages: messages.filter((curr) => curr != message)
+                        messages: get().messages.filter((curr) => curr != message)
                     })
                 } else {
                     set({
-                        messages: messages.map((curr) => {
+                        messages: get().messages.map((curr) => {
                             if (curr === message) {
                                 return { ...curr, time: curr.time + 1 };
                             }
@@ -401,11 +406,35 @@ const useStore = create<RFState>((set, get) => {
             }
 
             console.log('threads' ,threads)
-            console.log('messages', messages)
+            console.log('messages', messages)            
+            console.log('updates', updates)
             for (let i = 0; i < updates.length; i++) {
                 updates[i]()
             }
-        }
+
+            processes.forEach((process) => {
+                if(process.spawnInfo) {
+                    const spawnInfo = process.spawnInfo     
+                    if(get().time % spawnInfo.msBetweenSpawns == 0 && spawnInfo.totalSpawns < spawnInfo.maxSpawns) {    
+                            const processNode = get().nodes.find((node) => node.id == process.nodeId)
+                            if (!processNode) {
+                                console.log("Process Node not found")
+                                return
+                            }
+                            const parentNode = get().nodes.find((node) => node.id == processNode.parentNode)
+                            if (!parentNode) {
+                                console.log("Parent Node not found")
+                                return
+                            }
+                            get().createThread(null, parentNode.id, process.key)                                   
+                            spawnInfo.totalSpawns++                
+                    }
+                }
+            })
+            set({
+                time: get().time + 1
+            })
+        }    
     })
 });
 

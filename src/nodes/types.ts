@@ -13,12 +13,20 @@ export enum ThreadStatus {
     WAITING = 'waiting',
     RUNNING = 'running',
 }
+
+interface SpawnThread {
+    msBetweenSpawns : number,
+    maxSpawns : number,
+    totalSpawns : number
+}
+
 export interface Thread {
     threadID: number,
     callingThreadId : number | null,
     status : ThreadStatus,
     programCounter : number,
     processId : string
+    
 }
 
 export interface Process {
@@ -40,4 +48,5 @@ export interface Process {
         direction: Direction
 
     }[]
+    spawnInfo : SpawnThread | null
 }

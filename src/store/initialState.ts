@@ -13,7 +13,12 @@ const addUserClient : Process = {
         query: AddUser,
         direction: Direction.DOWN
       }
-    ]
+    ],
+    spawnInfo : {
+      msBetweenSpawns: 1,
+      maxSpawns: 3,
+      totalSpawns: 0
+    }
   }
   
   const addUserProcess : Process = {
@@ -25,15 +30,9 @@ const addUserClient : Process = {
     storage : 0,
     time: 5,
     subProcess: [
-      {
-        query: GetOrg,
-        direction: Direction.RIGHT
-      },
-      {
-        query: AddUser,
-        direction: Direction.DOWN
-      }
-    ]
+
+    ],
+    spawnInfo : null
   }
 
   const getOrgProcess : Process = {
@@ -45,7 +44,8 @@ const addUserClient : Process = {
     time: 5,
     storage : 0,
     subProcess: [
-    ]
+    ],
+    spawnInfo : null
   }
 
   const addUserDatabase : Process = {
@@ -57,7 +57,8 @@ const addUserClient : Process = {
     time: 5,
     storage : 500,
     subProcess: [      
-    ]
+    ],
+    spawnInfo : null
   }
 
 
@@ -72,4 +73,4 @@ const thread : Thread = {
     callingThreadId: null,
 }
 
-export const defaultThreads = [thread]
+export const defaultThreads = []
