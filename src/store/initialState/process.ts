@@ -33,6 +33,11 @@ export const addUserClientWCalls : Process = {
   subProcess : [callAddUser]
 }
 
+export const addUserClientWSpawn : Process = {
+  ...addUserClientWCalls,
+  spawnInfo: addUserClientSpawnInfo
+}
+
 const getOrg =   {
     query: GetOrg,
     direction: Direction.RIGHT

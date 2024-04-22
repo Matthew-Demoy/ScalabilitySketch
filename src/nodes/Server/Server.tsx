@@ -19,7 +19,7 @@ function Server({ id, data, selected }: NodeProps<undefined>) {
     const match = nodes.find((node) => node.id === connection.target)
     if (!match) return false
     console.log(connection)
-    return isEndNode(match) || isPipeNode(match)
+    return true
   }
 
   const updateNodeInternals = useUpdateNodeInternals();
@@ -30,14 +30,17 @@ function Server({ id, data, selected }: NodeProps<undefined>) {
 
 
   const handleOnConnect = (connection: Connection, direction : Direction) => {
+    //For the other handle get the id and the direction of based on the handle position
+    const match = nodes.find((node) => node.id === connection.target)
+    
     const Edge: Edge<EdgeData> = {
-      id: `${id}-${direction}`,
+      id: `${id}_${direction}_${connection.target}_${connection.targetHandle}`,
       source: id,
       sourceHandle: connection.sourceHandle ?? "",
       targetHandle: connection.targetHandle ?? "",
       target: connection.target ?? "",
       type: "transfer",
-      data: { messages: new Map<number, Message>(), latency: 2 * TimeScale.MILLISECOND },
+      data: { latency: 2 * TimeScale.MILLISECOND },
     }
 
     onConnect(Edge)
@@ -46,11 +49,11 @@ function Server({ id, data, selected }: NodeProps<undefined>) {
   return (
     <>
       <NodeResizer color="#ff0071" isVisible={selected} minWidth={100} minHeight={30} />
-      <Handle id={'4'}type="target" position={Position.Top} />
+      <Handle id={Direction.UP}type="target" position={Position.Top} />
       Server
       <Handle
         key={1}
-        id={'1'}
+        id={Direction.DOWN}
         position={Position.Bottom}
         isValidConnection={handleIsValidConnection}
         onConnect={(connection) => handleOnConnect(connection, Direction.DOWN)}
@@ -58,8 +61,8 @@ function Server({ id, data, selected }: NodeProps<undefined>) {
         isConnectableStart={true}
         isConnectableEnd={true} 
       />
-      <Handle key={2} id={'2'} position={Position.Left} type="target" />
-      <Handle key={3} id={'3'} position={Position.Right} isValidConnection={handleIsValidConnection} onConnect={(connection) => handleOnConnect(connection, Direction.RIGHT)} type="source"
+      <Handle key={2} id={Direction.LEFT} position={Position.Left} type="target" />
+      <Handle key={3} id={Direction.RIGHT} position={Position.Right} isValidConnection={handleIsValidConnection} onConnect={(connection) => handleOnConnect(connection, Direction.RIGHT)} type="source"
         isConnectableStart={true}
         isConnectableEnd={true}  
       />
