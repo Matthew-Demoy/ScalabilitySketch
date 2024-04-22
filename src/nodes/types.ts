@@ -50,3 +50,10 @@ export interface Process {
     }[]
     spawnInfo : SpawnThread | null
 }
+
+export enum NodeType {
+    CLIENT = 'client',
+    SERVER = 'server',
+    DATABASE = 'database',
+    PROCESS = 'process'
+  }

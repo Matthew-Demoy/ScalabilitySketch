@@ -12,17 +12,19 @@ import ReactFlow, {
     applyEdgeChanges,
 } from 'reactflow';
 
-import initialNodes from '../nodes/index';
-import initialEdges from '../edges/index';
+import initialNodes from '../store/initialState/nodes';
+import initialEdges from '../store/initialState/edges';
 import { AddUser, Direction, Process, Thread, ThreadStatus } from '../nodes/types';
 import { EdgeData, Message } from '../edges/types';
 import { TimeScale } from '../core/time';
-import { defaultProcesses, defaultThreads } from './initialState';
+import { defaultProcesses, defaultThreads } from './initialState/initialState';
 
 
 export type RFState = {
     //Counter to create globally unique thread ids
     globalCounter: number;
+    latency : number;
+    setLatency : (latency : number) => void;
     nodes: Node<undefined>[];
     edges: Edge<EdgeData>[];
     isRunning: boolean;
@@ -52,13 +54,12 @@ export type RFState = {
 export type StoreSet = (partial: RFState | Partial<RFState> | ((state: RFState) => RFState | Partial<RFState>), replace?: boolean | undefined) => void
 export type StoreGet = () => RFState
 
-type InitialState = {
+export type InitialState = {
     processes: Process[],
     threads: Thread[],
     messages: Message[],
     nodes: Node<undefined>[],
     edges: Edge<EdgeData>[],
-
 }
 
 const initialState : InitialState = {
@@ -159,6 +160,12 @@ const useStore = create<RFState>((set, get) => {
         generators: [],
         time: 0,
         timeScale: TimeScale.MILLISECOND,
+        latency : 0,
+        setLatency : (latency : number) => {
+            set({
+                latency
+            })
+        },
         resetState: () => {
             set({
                 ...initialState
@@ -375,7 +382,7 @@ const useStore = create<RFState>((set, get) => {
 
             for (let i = 0; i < messages.length; i++) {
                 const message = messages[i]
-                const LATENCY = 0;
+                const LATENCY = get().latency;
                 const edge = edges.find((edge) => edge.id == message.edgeId)
                 if (!edge) {
                     console.log("Edge not found")
@@ -405,9 +412,6 @@ const useStore = create<RFState>((set, get) => {
                 }
             }
 
-            console.log('threads' ,threads)
-            console.log('messages', messages)            
-            console.log('updates', updates)
             for (let i = 0; i < updates.length; i++) {
                 updates[i]()
             }

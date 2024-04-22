@@ -1,4 +1,5 @@
-import { AddUser, Direction, GetOrg, Process, Thread, ThreadStatus } from "../nodes/types"
+import { AddUser, Direction, GetOrg, Process, Thread, ThreadStatus } from "../../nodes/types"
+import { InitialState } from "../store"
 
 const addUserClient : Process = {
     nodeId: 'p1',
@@ -67,8 +68,6 @@ const addUserClient : Process = {
     ],
     spawnInfo : null
   }
-
-
   
 export const defaultProcesses = [ addUserClient, addUserProcess, getOrgProcess, addUserDatabase]
 
@@ -81,3 +80,11 @@ const thread : Thread = {
 }
 
 export const defaultThreads = []
+
+
+const singleThread : InitialState = {
+
+}
+
+
+const initialStates : InitialState[] = []

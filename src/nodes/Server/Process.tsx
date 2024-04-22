@@ -1,7 +1,7 @@
 import { Connection, NodeProps, Edge } from 'reactflow';
 import '../../index.css'
 import useStore, { RFState } from '../../store/store';
-import { NodeType } from '..';
+import { NodeType } from '../types';
 import { EdgeData, Message } from '../../edges/types';
 import { TimeScale } from '../../core/time';
 import { useState } from 'react';

@@ -3,7 +3,7 @@ import { Connection, Edge, Handle, NodeProps, Position, useUpdateNodeInternals }
 
 import useStore from '../store/store';
 import { ClientData, ProcessData } from './types';
-import { NodeType } from '.';
+import { NodeType } from './types';
 import { EdgeData, Message } from '../edges/types';
 import { TimeScale } from '../core/time';
 import {
