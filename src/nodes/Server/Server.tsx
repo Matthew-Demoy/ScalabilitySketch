@@ -66,6 +66,8 @@ function Server({ id, data, selected }: NodeProps<undefined>) {
         isConnectableStart={true}
         isConnectableEnd={true}  
       />
+      
+      <button className='addProcessButton'>+</button>
     </>);
 }
 
