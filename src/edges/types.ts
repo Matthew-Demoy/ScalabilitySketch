@@ -1,15 +1,13 @@
-export enum Direction {
-    TARGET,
-    SOURCE
-}
 export interface Message {
-    direction : Direction
-    id : number
-    t : number
-    templateName : string
+    edgeId : string,
+    destinationNodeId : string,
+    processKey : string,    
+    callingThreadId : number,
+    time : number,
+    isResponse : boolean
 }
 
-export interface EdgeData {
-    messages : Map<number, Message>,
+export interface EdgeData {    
     latency : number
+    //Each Edge has an id, sourceNodeId, and destinationNodeId at the reactflow level so it is not a part of data
 }

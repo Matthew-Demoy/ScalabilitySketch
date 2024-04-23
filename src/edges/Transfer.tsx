@@ -1,7 +1,7 @@
-import React, { FC } from 'react';
-import { EdgeProps, getBezierPath, EdgeLabelRenderer, BaseEdge } from 'reactflow';
-import { Direction, EdgeData } from './types';
-import { Component, TemplateLibrary } from '../nodes/types';
+import { FC } from 'react';
+import { EdgeProps, getBezierPath, EdgeLabelRenderer, BaseEdge, getSmoothStepPath } from 'reactflow';
+import { EdgeData, Message } from './types';
+import useStore from '../store/store';
 
 const Transfer: FC<EdgeProps<EdgeData>> = ({
   id,
@@ -11,6 +11,8 @@ const Transfer: FC<EdgeProps<EdgeData>> = ({
   targetY,
   sourcePosition,
   targetPosition,
+  target,
+  source,
   data,
 }) => {
   const [edgePath, labelX, labelY] = getBezierPath({
@@ -22,46 +24,54 @@ const Transfer: FC<EdgeProps<EdgeData>> = ({
     targetPosition,
   });
 
-  let messages : any = [];
+  const messages : Message[] = useStore((state) => state.messages).filter((message) => message.edgeId == id)
   
-  data?.messages.forEach((message, messageId) => {
+
+  const setEdges = useStore((state) => state.setEdges);
+  const setNodes = useStore((state) => state.setNodes);
+  const edges = useStore((state) => state.edges);
+  const nodes = useStore((state) => state.nodes);
+
+  const onEdgeClick = () => {
     
-      const latency = TemplateLibrary.get(message.templateName)?.get(message.direction == Direction.TARGET ? Component.CLIENT_CALL : Component.SERVER_RESPONSE)?.time || 0
+    const filtered = edges.filter((edge) => edge.id !== id);
+    setEdges(filtered);
 
-      const progress = message.t  / latency 
-
-      const color = message.direction == Direction.TARGET ? '#ffcc00' : 'red';
-      const position = message.direction == Direction.TARGET ? "140" : "0";
-
-
-      //const x = message.direction == Direction.TARGET ? sourceX + (targetX - sourceX) * progress : sourceX + (targetX - sourceX) * (1 - progress);
-      const x = message.direction == Direction.TARGET ? sourceX + (targetX - sourceX) * progress : sourceX + (targetX - sourceX) * (1 - progress)
-      const y =  message.direction == Direction.TARGET ? sourceY + (targetY - sourceY) * progress : sourceY + (targetY - sourceY) * (1 - progress )
+    const filteredNodes = nodes.filter((node) => {
+      
+      // Delete process nodes that share the same feature name and are a child of the connected parent
+      if(isProcessNode(node)){
+        return !(node.data.name == data.name && target == node.parentNode)
+      }
+      return true
+    })
+    setNodes(filteredNodes)
+  };
   
-      messages.push(
-          <EdgeLabelRenderer
-          key={messageId}>
+  return (
+    <>
+      <BaseEdge id={id} path={edgePath}/>
+        <EdgeLabelRenderer>
           <div
             style={{
               position: 'absolute',
-              transform: `translate(-${position}%, -50%) translate(${x}px,${y}px)`,
-              background: color,
-              padding: 10,
-              borderRadius: 5,
+              transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
               fontSize: 12,
-              fontWeight: 700,
+              pointerEvents: 'all',
             }}
             className="nodrag nopan"
           >
-            {message.templateName}
+            <div onClick={onEdgeClick} style={{cursor: 'pointer'}}>
+              ×
+              {id}----
+              {source}-
+              {target}
+              <br></br>
+              messages : {messages.length}
+              
+            </div>
           </div>
         </EdgeLabelRenderer>
-      )
-  })
-  return (
-    <>
-      <BaseEdge id={id} path={edgePath} />
-        {messages}
     </>
   );
 };

@@ -1,0 +1,126 @@
+import '../index.css'
+import useStore, { RFState } from '../store/store';
+import { useState } from 'react';
+import { Process as ProcessType } from '../nodes/types';
+
+interface ProcessProps {
+  process: ProcessType;
+}
+
+
+const Process: React.FC<ProcessProps> = (props) => {
+    const { process } = props;
+    const nodes = useStore((state) => state.nodes);
+    const onConnect = useStore((state) => state.onConnect);
+    const [call, setCall] = useState('');    
+    
+    if(!process) {
+        console.error('Process not found')
+        return null}
+
+
+    enum Direction {
+        UP = 'up',
+        DOWN = 'down',
+        LEFT = 'left',
+        RIGHT = 'right'
+    }
+
+    const changeDirection = (direction: Direction, index: number) => {
+        let newDirection: Direction = Direction.DOWN;
+        if (direction === Direction.DOWN) {
+            newDirection = Direction.LEFT;
+        } else if (direction === Direction.LEFT) {
+            newDirection = Direction.UP;
+        } else if (direction === Direction.UP) {
+            newDirection = Direction.RIGHT;
+        }
+
+        // Update the direction in the Zustand store
+        useStore.setState((state: RFState) => {
+            return {
+                ...state,
+                nodes: state.nodes.map((node) => {
+                    if (node.id === id && isProcessNode(node)) {
+                        node.data.calls[index].direction = newDirection;
+                    }
+                    return node;
+                })
+            }
+        })
+    }
+
+    const getArrows = (direction: Direction) => {
+        if (direction === Direction.DOWN) {
+            return '↓'
+        } else if (direction === Direction.LEFT) {
+            return '←'
+        } else if (direction === Direction.UP) {
+            return '↑'
+        }
+        return '→'
+    }
+
+    const getDirectionButton = (direction: Direction, index: number) => {
+        return (
+            <button onClick={() => changeDirection(direction, index)}>
+                {getArrows(direction)}
+            </button>
+        )
+    }
+
+    const handleRemoveClick = (index: number) => {
+        process.subProcess.splice(index, 1)
+    }
+
+    const calls = process.subProcess.map((call, index) => {
+        return (
+            <div key={index}>
+                {index + 1}. {call.query}  {getDirectionButton(call.direction, index)}
+                <button onClick={() => handleRemoveClick(index)}>x</button>
+            </div>
+        )
+    })
+
+    const handleAddCall = () => {
+        const newCall = {
+            query: call,
+            direction: Direction.DOWN
+        }
+        process.subProcess.push(newCall);
+        setCall(''); // clear the input
+    }
+
+    return (
+        <div className='componentBorder'>
+            <b>
+                {process.displayName + ' '} 
+            </b>
+            <small style={{opacity: '50%'}}>
+                {process.key}
+            </small>
+            <br></br>
+            <button className='proccessToggle'>
+                {process.memory} KB
+            </button>
+            <button className='proccessToggle'>
+                {process.time} MS
+            </button>
+            {calls}
+
+            <div>
+                <input
+                    type='text'
+                    placeholder='Query'
+                    value={call}
+                    onChange={e => setCall(e.target.value)}
+                    style={{ width: '50%' }}
+                />
+                <button disabled={!call} onClick={handleAddCall}>
+                    + Call
+                </button>
+            </div>
+        </div>);
+}
+
+export default Process;

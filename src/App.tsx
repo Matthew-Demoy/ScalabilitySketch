@@ -1,22 +1,22 @@
 import { useShallow } from 'zustand/react/shallow';
-import ReactFlow, { ReactFlowInstance } from 'reactflow';
+import ReactFlow, { ReactFlowInstance, ReactFlowProvider } from 'reactflow';
 
 import 'reactflow/dist/style.css';
 import './index.css'
 
 import useStore, { RFState } from './store/store';
 import Client from './nodes/Client';
-import Server from './nodes/Server';
+import Server from './nodes/Server/Server';
 import Database from './nodes/Database';
 import { useEffect, useState } from 'react';
 import Transfer from './edges/Transfer';
 import { TimeScale, displayTime } from './core/time';
-import NodeInfoList from './components/nodesInfoList';
-import AddComponent from './components/addComponent';
-import { Component } from './nodes/types';
-import TaskView from './components/taskView';
+import Process from './nodes/Server/Process';
+import { ThreadStatus } from './nodes/types';
+import useAutoLayout, { type LayoutOptions } from './layout/useLayout';
+import React from 'react';
 
-const nodeTypes = { client: Client, server: Server, database: Database };
+const nodeTypes = { client: Client, server: Server, database: Database, process: Process };
 const edgeTypes = { transfer: Transfer }
 
 const selector = (state: RFState) => ({
@@ -29,21 +29,30 @@ const selector = (state: RFState) => ({
   setTimeScale: state.updateTimeScale,
   timeScale: state.timeScale,
   setNodes: state.setNodes,
-  taskLibrary: state.taskLibrary,
-  modifyTasks: state.modifyTasks,
-  modifyFeaturesForClient: state.modifyFeaturesForClient
+  threads: state.threads,
+  messages: state.messages
 });
 
-function Flow() {
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, time, setTimeScale, timeScale, setNodes, taskLibrary, modifyTasks, modifyFeaturesForClient } = useStore(
+function Flow() {  
+  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, time, setTimeScale, timeScale, setNodes, threads, messages } = useStore(
     useShallow(selector),
   );
 
-  const features = Array.from(taskLibrary.keys()).map((task) => task)
+  const layoutOptions = React.useMemo(() => ({
+    algorithm: 'elk' as LayoutOptions['algorithm'],
+    direction: 'LR',
+    spacing: [50, 50],
+  }), []); 
+  // this hook handles the computation of the layout once the elements or the direction changes
+  useAutoLayout(layoutOptions);
+  
+  const runningProcessCount = threads.filter(t => t.status === ThreadStatus.RUNNING).length
+  const requests = threads.filter(t => t.callingThreadId == null).length
+
   const { isRunning, tick } = useStore()
 
   const [reactFlowInstance, setReactFlowInstance] = useState(null as ReactFlowInstance | null);
-
+  
 
   const onInit = (instance: ReactFlowInstance) => { setReactFlowInstance(instance) }
 
@@ -63,7 +72,7 @@ function Flow() {
   const [isTaskViewOpen, setIsTaskViewOpen] = useState(false);
 
 
-  const handleAddComponent = (choice: Component) => {
+  const handleAddComponent = (choice: any) => {
 
     const component = {
       id: (nodes.length + 1).toString(),
@@ -80,38 +89,34 @@ function Flow() {
 
   }
 
+  const handleStepForward = () => {
+    tick()
+  }
+
+
+
   return (
     <span>
       <div className={'buttonContainer'}>
         Time : {displayTime(time)}
 
         <div>
-          <button disabled={timeScale == TimeScale.MICROSECOND} onClick={() => setTimeScale(TimeScale.MICROSECOND)} > .001X</button>
+          <button disabled={timeScale == TimeScale.MICROSECOND * 10} onClick={() => setTimeScale(TimeScale.MICROSECOND * 10)} > .01X</button>
           <button disabled={timeScale == TimeScale.MILLISECOND} onClick={() => setTimeScale(TimeScale.MILLISECOND)}> 1X</button>
           <button disabled={timeScale == TimeScale.SECOND} onClick={() => setTimeScale(TimeScale.SECOND)}> 1000X</button>
         </div>
-
+        <div>
+          Running Threads {runningProcessCount} / {threads.length}
+          <br />
+          Messages {messages.length}
+          <br />
+          Origin Threads {requests}
+        </div>
         {isRunning ? <button className={'stopButton'} onClick={() => useStore.getState().resetSimulation()}>Stop</button>
           : <button className={'startButton'} onClick={() => useStore.getState().startSimulation()}>Start</button>}
-
-        <NodeInfoList  nodes={nodes} features={features} modifyFeaturesForClient={modifyFeaturesForClient}/>
-        <AddComponent addComponent={(choice) => handleAddComponent(choice)} />
-
-        <div className='dropdown-button-container'>
-          <h2>
-            Tasks
-
-          </h2>
-          <button onClick={() => setIsTaskViewOpen(!isTaskViewOpen)}>
-              {isTaskViewOpen ? '\\/' : '<'}
-            </button>
-
-        </div>
-        {isTaskViewOpen && (
-            <TaskView taskLibrary={taskLibrary} modifyTasks={modifyTasks} />
-          )}
-       
+        {<button disabled={isRunning} onClick={() => handleStepForward()}>Step Forward</button>}
       </div>
+      
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -126,4 +131,12 @@ function Flow() {
   );
 }
 
-export default Flow;
+
+const WrappedFlow = () => {
+  return (
+    <ReactFlowProvider>
+      <Flow />
+    </ReactFlowProvider>
+  )
+}
+export default WrappedFlow;
