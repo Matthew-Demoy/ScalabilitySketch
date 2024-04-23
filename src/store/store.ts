@@ -14,7 +14,7 @@ import ReactFlow, {
 
 import initialNodes from '../store/initialState/nodes';
 import initialEdges from '../store/initialState/edges';
-import { AddUser, Direction, Process, Thread, ThreadStatus } from '../nodes/types';
+import { AddUser, Direction, NodeType, Process, Thread, ThreadStatus } from '../nodes/types';
 import { EdgeData, Message } from '../edges/types';
 import { TimeScale } from '../core/time';
 import { defaultProcesses, defaultThreads } from './initialState/initialState';
@@ -48,6 +48,7 @@ export type RFState = {
     createThread: (callingThreadId: number | null, destinationNodeId: string, processKey: string) => void
     updateThread: (threadId: number) => void
     updateProcess : (process: Process) => void
+    createProcess: (parentId : string) => void
     resetState : () => void
 };
 
@@ -79,13 +80,7 @@ const useStore = create<RFState>((set, get) => {
             console.log("Process not found")
             return
         }
-
-        const processNode = get().nodes.find((node) => node.id == process.nodeId)
-        if (!processNode) {
-            console.log("Process Node not found")
-            return
-        }
-        const parentNode = get().nodes.find((node) => node.id == processNode.parentNode)
+        const parentNode = get().nodes.find((node) => node.id == process.parentNode)
         if (!parentNode) {
             console.log("Parent Node not found")
             return
@@ -118,12 +113,7 @@ const useStore = create<RFState>((set, get) => {
             return
         }
 
-        const node = get().nodes.find((node) => node.id == process.nodeId)
-        if (!node) {
-            console.log("Node not found")
-            return
-        }
-        const parentNode = get().nodes.find((node) => node.id == node.data.parentNode)
+        const parentNode = get().nodes.find((node) => node.id == process.parentNode)
         if (!parentNode) {
             console.log("Parent Node not found")
             return
@@ -244,6 +234,27 @@ const useStore = create<RFState>((set, get) => {
         updateTimeScale: (scale: TimeScale) => {
             set({ timeScale: scale });
         },
+        createProcess: (parentId : string) => {
+            const counter = get().globalCounter
+            const id = `${parentId}_p${counter}`
+            const process: Process = {
+                id: id,
+                key: "",
+                parentNode: parentId,
+                displayName: "test",
+                memory: 0,
+                storage: 0,
+                time: 0,
+                subProcess: [],
+                spawnInfo : null
+            }
+
+
+            set({                
+                processes: [...get().processes, process],
+                globalCounter: counter + 1
+            })
+        },
         createMessage: (threadId: number, edgeId: string, callingNodeId: string, processKey: string, isResponse: boolean) => {
             const edge = get().edges.find((edge) => edge.id == edgeId)
             if (!edge) {
@@ -275,8 +286,7 @@ const useStore = create<RFState>((set, get) => {
          */
         createThread: (callingThreadId: number | null, destinationNodeId: string, processKey: string) => {
 
-            const processNodeIds = new Set(get().nodes.filter(node => node.parentNode == destinationNodeId).map(node => node.id));
-            const process = get().processes.find(process => processNodeIds.has(process.nodeId) && process.key == processKey);
+            const process = get().processes.find(process => process.parentNode == destinationNodeId && process.key == processKey);
 
             if (!process) {
                 console.log("Process not found", processKey, destinationNodeId, get().processes)
@@ -312,7 +322,7 @@ const useStore = create<RFState>((set, get) => {
             })
         },
         tick: () => {
-            const { threads, messages, processes, nodes, edges } = get()
+            const { threads, messages, processes, edges } = get()
             const { createMessage } = get()
             let updates = [];
             for (let i = 0; i < threads.length; i++) {
@@ -415,17 +425,12 @@ const useStore = create<RFState>((set, get) => {
             for (let i = 0; i < updates.length; i++) {
                 updates[i]()
             }
-
+        
             processes.forEach((process) => {
                 if(process.spawnInfo) {
                     const spawnInfo = process.spawnInfo     
                     if(get().time % spawnInfo.msBetweenSpawns == 0 && spawnInfo.totalSpawns < spawnInfo.maxSpawns) {    
-                            const processNode = get().nodes.find((node) => node.id == process.nodeId)
-                            if (!processNode) {
-                                console.log("Process Node not found")
-                                return
-                            }
-                            const parentNode = get().nodes.find((node) => node.id == processNode.parentNode)
+                            const parentNode = get().nodes.find((node) => node.id == process.parentNode)
                             if (!parentNode) {
                                 console.log("Parent Node not found")
                                 return

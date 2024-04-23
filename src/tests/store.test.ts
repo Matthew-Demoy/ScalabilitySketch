@@ -127,7 +127,7 @@ describe("initializing state and properly simulate with tick()", () => {
      * If a message does not get passed to the correct node, or a duplicate of either a thread/message is created
      * this test will catch it.
      */
-    it('A process should spawn threads', () => {
+    it('A process should spawn threads, and those threads spawn threads >:)', () => {
         let store = getStore();
     
         act(() => {

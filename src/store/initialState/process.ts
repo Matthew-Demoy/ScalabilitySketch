@@ -1,6 +1,4 @@
-
 import { AddUser, Direction, GetOrg, Process } from "../../nodes/types"
-
 
 const addUserClientSpawnInfo = {
   msBetweenSpawns: 1,
@@ -8,14 +6,13 @@ const addUserClientSpawnInfo = {
   totalSpawns: 0
 }
 
-
 const callAddUser =     {
     query: AddUser,
     direction: Direction.DOWN
   }
 
 export const addUserClient: Process = {
-  nodeId: 'p1',
+  parentNode: 's1',
   id: 'p1',
   displayName: 'Add User',
   key: AddUser,
@@ -54,7 +51,7 @@ const addUserDb = [
 ]
 
 export const addUserProcess: Process = {
-  nodeId: 'p2',
+  parentNode: 's2',
   displayName: 'Add User',
   id: 'p2',
   key: AddUser,
@@ -71,7 +68,7 @@ export const addUserProcessWCalls : Process = {
 }
 
 const getOrgProcess: Process = {
-  nodeId: 'p3',
+  parentNode: 's3',
   id: 'p3',
   displayName: 'Get Org',
   key: GetOrg,
@@ -83,7 +80,7 @@ const getOrgProcess: Process = {
 }
 
 const addUserDatabase: Process = {
-  nodeId: 'p4',
+  parentNode: 's4',
   id: 'p4',
   displayName: 'Persist User',
   key: AddUser,

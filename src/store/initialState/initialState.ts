@@ -2,28 +2,28 @@ import { AddUser, Direction, GetOrg, Process, Thread, ThreadStatus } from "../..
 import { InitialState } from "../store"
 
 const addUserClient : Process = {
-    nodeId: 'p1',
-    id : 'p1',
-    displayName : 'Add User',
-    key : AddUser,
-    memory: 100,
-    time: 5,
-    storage : 0,
-    subProcess: [
-      {
-        query: AddUser,
-        direction: Direction.DOWN
-      }
-    ],
-    spawnInfo : {
-      msBetweenSpawns: 1,
-      maxSpawns: 3,
-      totalSpawns: 0
+  id: 'p1',
+  displayName: 'Add User',
+  key: AddUser,
+  memory: 100,
+  time: 5,
+  storage: 0,
+  subProcess: [
+    {
+      query: AddUser,
+      direction: Direction.DOWN
     }
-  }
+  ],
+  spawnInfo: {
+    msBetweenSpawns: 1,
+    maxSpawns: 3,
+    totalSpawns: 0
+  },
+  parentNode: "s1"
+}
   
   const addUserProcess : Process = {
-    nodeId: 'p2',
+    parentNode: 's2',
     displayName : 'Add User',
     id : 'p2',
     key : AddUser,
@@ -44,7 +44,7 @@ const addUserClient : Process = {
   }
 
   const getOrgProcess : Process = {
-    nodeId: 'p3',
+    parentNode: 's3',
     id : 'p3',
     displayName : 'Get Org',
     key : GetOrg,
@@ -57,7 +57,7 @@ const addUserClient : Process = {
   }
 
   const addUserDatabase : Process = {
-    nodeId: 'p4',
+    parentNode: 's4',
     id : 'p4',
     displayName : 'Persist User',
     key : AddUser,

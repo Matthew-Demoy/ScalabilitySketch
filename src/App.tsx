@@ -1,5 +1,5 @@
 import { useShallow } from 'zustand/react/shallow';
-import ReactFlow, { ReactFlowInstance } from 'reactflow';
+import ReactFlow, { ReactFlowInstance, ReactFlowProvider } from 'reactflow';
 
 import 'reactflow/dist/style.css';
 import './index.css'
@@ -13,6 +13,8 @@ import Transfer from './edges/Transfer';
 import { TimeScale, displayTime } from './core/time';
 import Process from './nodes/Server/Process';
 import { ThreadStatus } from './nodes/types';
+import useAutoLayout, { type LayoutOptions } from './layout/useLayout';
+import React from 'react';
 
 const nodeTypes = { client: Client, server: Server, database: Database, process: Process };
 const edgeTypes = { transfer: Transfer }
@@ -31,18 +33,26 @@ const selector = (state: RFState) => ({
   messages: state.messages
 });
 
-function Flow() {
+function Flow() {  
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect, time, setTimeScale, timeScale, setNodes, threads, messages } = useStore(
     useShallow(selector),
   );
 
+  const layoutOptions = React.useMemo(() => ({
+    algorithm: 'elk' as LayoutOptions['algorithm'],
+    direction: 'LR',
+    spacing: [50, 50],
+  }), []); 
+  // this hook handles the computation of the layout once the elements or the direction changes
+  useAutoLayout(layoutOptions);
+  
   const runningProcessCount = threads.filter(t => t.status === ThreadStatus.RUNNING).length
   const requests = threads.filter(t => t.callingThreadId == null).length
 
   const { isRunning, tick } = useStore()
 
   const [reactFlowInstance, setReactFlowInstance] = useState(null as ReactFlowInstance | null);
-
+  
 
   const onInit = (instance: ReactFlowInstance) => { setReactFlowInstance(instance) }
 
@@ -83,6 +93,8 @@ function Flow() {
     tick()
   }
 
+
+
   return (
     <span>
       <div className={'buttonContainer'}>
@@ -104,7 +116,7 @@ function Flow() {
           : <button className={'startButton'} onClick={() => useStore.getState().startSimulation()}>Start</button>}
         {<button disabled={isRunning} onClick={() => handleStepForward()}>Step Forward</button>}
       </div>
-
+      
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -119,4 +131,12 @@ function Flow() {
   );
 }
 
-export default Flow;
+
+const WrappedFlow = () => {
+  return (
+    <ReactFlowProvider>
+      <Flow />
+    </ReactFlowProvider>
+  )
+}
+export default WrappedFlow;

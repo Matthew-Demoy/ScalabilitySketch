@@ -5,15 +5,16 @@ const ServerOne = {
     id: 's1',
     type: NodeType.SERVER,
     position: { x: 0, y: -100 },
-    className: 'componentBorder server'
+    className: 'componentBorder server',    
 }
 
-const ProcessOne = {
+const ProcessOne : Node = {
     id: 'p1',
     type: NodeType.PROCESS,
     position: { x: 20, y: 60 },
     parentNode: 's1',
     extent: 'parent',
+    data: undefined,
 }
 
 
@@ -64,6 +65,6 @@ const ProcessFour = {
 }
 
 
-const nodes = [ServerOne, ProcessOne, ServerTwo, ProcessTwo, ServerThree, ProcessThree, ServerFour, ProcessFour] as Node[]
+const nodes = [ServerOne, ServerTwo, ServerThree, ServerFour] as Node[]
 export default nodes    
 export {ServerOne, ProcessOne, ServerTwo, ProcessTwo, ServerThree, ProcessThree, ServerFour, ProcessFour}

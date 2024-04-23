@@ -42,7 +42,9 @@ export interface Process {
     storage: number
     //The time it takes for the process to run
     time: number,
-    nodeId: string,
+
+    //id of the parent node
+    parentNode: string,
     subProcess: {
         query: string
         direction: Direction
