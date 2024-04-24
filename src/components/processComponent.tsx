@@ -12,6 +12,7 @@ const Process: React.FC<ProcessProps> = (props) => {
     const { process } = props;
     const nodes = useStore((state) => state.nodes);
     const onConnect = useStore((state) => state.onConnect);
+    const updateProcess = useStore((state) => state.updateProcess);
     const [call, setCall] = useState('');    
     
     if(!process) {
@@ -35,19 +36,8 @@ const Process: React.FC<ProcessProps> = (props) => {
         } else if (direction === Direction.UP) {
             newDirection = Direction.RIGHT;
         }
-
-        // Update the direction in the Zustand store
-        useStore.setState((state: RFState) => {
-            return {
-                ...state,
-                nodes: state.nodes.map((node) => {
-                    if (node.id === id && isProcessNode(node)) {
-                        node.data.calls[index].direction = newDirection;
-                    }
-                    return node;
-                })
-            }
-        })
+        
+        updateProcess({ ...process, subProcess: process.subProcess.map((call, i) => i === index ? { ...call, direction: newDirection } : call) })
     }
 
     const getArrows = (direction: Direction) => {
@@ -91,21 +81,103 @@ const Process: React.FC<ProcessProps> = (props) => {
         setCall(''); // clear the input
     }
 
+    const handleMaxSpawnsChange = (value: string) => {
+
+        if(process.spawnInfo === null) {
+            return
+        }
+        const newProcess = { ...process, spawnInfo: { ...process.spawnInfo, maxSpawns: Number(value) } };
+        updateProcess(newProcess);
+    }
+    
+    const handleMsBetweenSpawnsChange = (value: string) => {
+        if(process.spawnInfo === null) {
+            return
+        }
+        const newProcess = { ...process, spawnInfo: { ...process.spawnInfo, msBetweenSpawns: Number(value) } };        
+        updateProcess(newProcess);
+    }
+
+    const handleStorageChange = (value: string) => {
+        const newProcess = { ...process, storage: Number(value) };
+        updateProcess(newProcess);
+    }
+
+    const handleMemoryChange = (value: string) => {
+        const newProcess = { ...process, memory: Number(value) };
+        updateProcess(newProcess);
+    }
+
+    const handleTimeChange = (value: string) => {
+        const newProcess = { ...process, time: Number(value) };
+        updateProcess(newProcess);
+    }
+
+    const spawnInfoFields = process.spawnInfo ? (
+        <>
+            <label>
+                Max Spawns:
+                <input
+                    type='number'
+                    
+                    value={process.spawnInfo.maxSpawns}
+                    onChange={e => handleMaxSpawnsChange(e.target.value)}
+                />
+            </label>
+            <label>
+                Ms Between Spawns:
+                <input
+                    type='number'
+                    value={process.spawnInfo.msBetweenSpawns}
+                    onChange={e => handleMsBetweenSpawnsChange(e.target.value)}
+                />
+            </label>
+        </>
+    ) : null;
+
+    const initializeSpawnInfo = process.spawnInfo === null ? (
+        <button onClick={() => updateProcess({ ...process, spawnInfo: { msBetweenSpawns: 1, maxSpawns: 3, totalSpawns: 0 } })}>
+            Initialize Spawn Info
+        </button>
+    ) : null;
     return (
         <div className='componentBorder'>
             <b>
                 {process.displayName + ' '} 
             </b>
-            <small style={{opacity: '50%'}}>
-                {process.key}
-            </small>
-            <br></br>
-            <button className='proccessToggle'>
-                {process.memory} KB
-            </button>
-            <button className='proccessToggle'>
-                {process.time} MS
-            </button>
+            <br/>
+            <label>
+                Memory (KB):
+                <input
+                    type='number'
+                    
+                    value={process.memory}
+                    onChange={e => handleMemoryChange(e.target.value)}
+                />
+            </label>
+
+            <label>
+                Time (MS):
+                <input
+                    type='number'
+                    
+                    value={process.time}
+                    onChange={e => handleTimeChange(e.target.value)}
+                />
+            </label>
+
+            <label>
+                Storage (KB):
+                <input
+                    type='number'
+                    value={process.storage}
+                    onChange={e => handleStorageChange(e.target.value)}
+                />
+            </label>
+            
+            
+            {spawnInfoFields}
+            {initializeSpawnInfo}
             {calls}
 
             <div>
