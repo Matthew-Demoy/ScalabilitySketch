@@ -1,11 +1,14 @@
-import { NodeType } from "../../nodes/types";
+import { NodeData, NodeType } from "../../nodes/types";
 import { Node } from 'reactflow';
 
-const ServerOne = {
+const ServerOne : Node<NodeData>= {
     id: 's1',
     type: NodeType.SERVER,
     position: { x: 0, y: -100 },
-    className: 'componentBorder server',    
+    className: 'componentBorder server',
+    data : {
+        displayName : 'Client'        
+    }
 }
 
 const ProcessOne : Node = {
@@ -18,11 +21,14 @@ const ProcessOne : Node = {
 }
 
 
-const ServerTwo =     {
+const ServerTwo : Node<NodeData>=     {
     id: 's2',
     type: NodeType.SERVER,
     position: { x: 0, y: 225 },
-    className: 'componentBorder server'
+    className: 'componentBorder server',
+    data : {
+        displayName : 'User Service'        
+    }
 }
 
 const ProcessTwo = 
@@ -34,11 +40,14 @@ const ProcessTwo =
     extent: 'parent',
 }
 
-const ServerThree = {
+const ServerThree : Node<NodeData> = {
     id: 's3',
     type: NodeType.SERVER,
     position: { x: 400, y: 225 },
-    className: 'componentBorder server'
+    className: 'componentBorder server',
+    data : {
+        displayName : 'Org Service'        
+    }
 }
 
 const ProcessThree = {
@@ -49,11 +58,14 @@ const ProcessThree = {
     extent: 'parent',
 }
 
-const ServerFour = {
+const ServerFour : Node<NodeData> = {
     id: 's4',
     type: NodeType.SERVER,
     position: { x: 0, y: 525 },
-    className: 'componentBorder server'
+    className: 'componentBorder server',
+    data : {
+        displayName : 'User Database'        
+    }
 }
 
 const ProcessFour = {
@@ -65,6 +77,6 @@ const ProcessFour = {
 }
 
 
-const nodes = [ServerOne, ServerTwo, ServerThree, ServerFour] as Node[]
+const nodes = [ServerOne, ServerTwo, ServerThree, ServerFour] as Node<NodeData>[]
 export default nodes    
 export {ServerOne, ProcessOne, ServerTwo, ProcessTwo, ServerThree, ProcessThree, ServerFour, ProcessFour}

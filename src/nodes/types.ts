@@ -59,3 +59,9 @@ export enum NodeType {
     DATABASE = 'database',
     PROCESS = 'process'
   }
+
+
+
+  export interface NodeData {
+    displayName: string
+  }

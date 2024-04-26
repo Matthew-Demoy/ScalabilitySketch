@@ -1,19 +1,22 @@
 import { Connection, Handle, NodeProps, Position, Edge, useUpdateNodeInternals } from 'reactflow';
 import '../../index.css'
 import useStore from '../../store/store';
-import { Direction } from '../types';
+import { Direction, NodeData } from '../types';
 import { EdgeData } from '../../edges/types';
 import { TimeScale } from '../../core/time';
 import "./Server.css"
-import { memo, useEffect } from 'react';
+import { memo, useEffect, useState } from 'react';
 import ProcessComponent from '../../components/processComponent';
 
-function Server({ id, data, selected }: NodeProps<undefined>) {
+function Server({ id, data, selected, }: NodeProps<NodeData>) {
+  const displayName = data.displayName;
   const nodes = useStore((state) => state.nodes);
   const onConnect = useStore((state) => state.onConnect);
   const subProcesses = useStore(state => state.processes.filter(process => process.parentNode == id))
 
   const createProcess = useStore(state => state.createProcess)
+
+  const [isCollapsed, setIsCollapsed] = useState(false)
 
   const handleIsValidConnection = (connection: Connection): boolean => {
     const match = nodes.find((node) => node.id === connection.target)
@@ -43,21 +46,36 @@ function Server({ id, data, selected }: NodeProps<undefined>) {
       data: { latency: 2 * TimeScale.MILLISECOND },
     }
 
+
+    const keysSet = subProcesses.reduce((keysSet, process) => {
+      process.subProcess
+        .filter(subProcess => subProcess.direction === direction)
+        .forEach(subProcess => keysSet.add(subProcess.query));
+      return keysSet;
+    }, new Set<string>());
+
+    const keys = Array.from(keysSet);
+
+    keys.forEach(key => {
+      if (connection.target == null) {
+        return
+      }
+      createProcess(connection.target, key, key)
+    })
     onConnect(Edge)
   }
 
   const handleAddProcess = () => {
-    console.log("Adding process",)
     createProcess(id)
   }
-  
+
   const processComponents = subProcesses.map((process) => {
     return <ProcessComponent process={process} />
   })
   return (
-    <>      
+    <>
       <Handle id={Direction.UP} type="target" position={Position.Top} />
-      Server
+      {displayName ? displayName : 'Server'}
       <Handle
         key={1}
         id={Direction.DOWN}
@@ -73,10 +91,13 @@ function Server({ id, data, selected }: NodeProps<undefined>) {
         isConnectableStart={true}
         isConnectableEnd={true}
       />
-      
-        {processComponents}
-      
-      <button className='addProcessButton' onClick={() => handleAddProcess()}>+</button>
+
+      <span className='addProcessButton'>
+        <button onClick={() => handleAddProcess()}>+</button>
+        <button onClick={() => setIsCollapsed(!isCollapsed)}>{isCollapsed ? '›' : '⌄'}</button>
+      </span>
+
+      {!isCollapsed ? processComponents : processComponents[0]}
     </>);
 }
 

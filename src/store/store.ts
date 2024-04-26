@@ -14,18 +14,21 @@ import ReactFlow, {
 
 import initialNodes from '../store/initialState/nodes';
 import initialEdges from '../store/initialState/edges';
-import { AddUser, Direction, NodeType, Process, Thread, ThreadStatus } from '../nodes/types';
+import { AddUser, Direction, NodeData, NodeType, Process, Thread, ThreadStatus } from '../nodes/types';
 import { EdgeData, Message } from '../edges/types';
 import { TimeScale } from '../core/time';
 import { defaultProcesses, defaultThreads } from './initialState/initialState';
+import { addUserClient, addUserClientWSpawn } from './initialState/process';
 
 
 export type RFState = {
     //Counter to create globally unique thread ids
     globalCounter: number;
+    presets : Preset[];
+    loadPreset: (index : number) => void,
     latency : number;
     setLatency : (latency : number) => void;
-    nodes: Node<undefined>[];
+    nodes: Node<NodeData>[];
     edges: Edge<EdgeData>[];
     isRunning: boolean;
     generators: Node<undefined>[];
@@ -48,8 +51,9 @@ export type RFState = {
     createThread: (callingThreadId: number | null, destinationNodeId: string, processKey: string) => void
     updateThread: (threadId: number) => void
     updateProcess : (process: Process) => void
-    createProcess: (parentId : string) => void
+    createProcess: (parentId : string, key ?: string, displayName ?: string) => void
     resetState : () => void
+    createNode : (type : NodeType) => void
 };
 
 export type StoreSet = (partial: RFState | Partial<RFState> | ((state: RFState) => RFState | Partial<RFState>), replace?: boolean | undefined) => void
@@ -59,8 +63,13 @@ export type InitialState = {
     processes: Process[],
     threads: Thread[],
     messages: Message[],
-    nodes: Node<undefined>[],
+    nodes: Node<NodeData>[],
     edges: Edge<EdgeData>[],
+}
+
+type Preset = {
+    name : string,
+    state : InitialState
 }
 
 const initialState : InitialState = {
@@ -70,6 +79,37 @@ const initialState : InitialState = {
     nodes: initialNodes,
     edges: initialEdges,
 }
+
+const noProcessState : InitialState = {
+    processes: [addUserClientWSpawn],
+    threads: [],
+    messages: [],
+    nodes: initialNodes,
+    edges: [],
+}
+
+const emptyState : InitialState = {
+    processes: [],
+    threads: [],
+    messages: [],
+    nodes: [],
+    edges: [],
+}
+
+const presets : Preset[] = [
+    {
+        name : "Default",
+        state : initialState
+    },
+    {
+        name : "No Processes",
+        state : noProcessState
+    },
+    {
+        name : "Empty",
+        state : emptyState
+    }
+]
 
 // this is our useStore hook that we can use in our components to get parts of the store and call actions
 const useStore = create<RFState>((set, get) => {
@@ -145,12 +185,35 @@ const useStore = create<RFState>((set, get) => {
 
     return ({
         ...initialState,
+        presets : presets,
         globalCounter: 123,
         isRunning: false,
         generators: [],
         time: 0,
         timeScale: TimeScale.MILLISECOND,
         latency : 0,
+        loadPreset : (index : number) => {
+            const preset = get().presets[index]
+            set({
+                ...preset.state
+            })
+        },
+        createNode(type : NodeType) {
+            const nodeCounter = get().globalCounter
+
+            const displayName = type == NodeType.CLIENT ? "Client" : type == NodeType.SERVER ? "Server" : type == NodeType.DATABASE ? "Database" : "Server"
+            const node: Node = {
+                id: `s${nodeCounter}`,
+                type: NodeType.SERVER,
+                className: 'componentBorder server',
+                position: { x: 0, y: 0 },
+                data: {displayName},
+            };
+            set({
+                nodes: [...get().nodes, node],
+                globalCounter: nodeCounter + 1
+            });
+        },
         setLatency : (latency : number) => {
             set({
                 latency
@@ -234,21 +297,20 @@ const useStore = create<RFState>((set, get) => {
         updateTimeScale: (scale: TimeScale) => {
             set({ timeScale: scale });
         },
-        createProcess: (parentId : string) => {
+        createProcess: (parentId : string, key : string = "", displayName = "") => {
             const counter = get().globalCounter
             const id = `${parentId}_p${counter}`
             const process: Process = {
                 id: id,
-                key: "",
+                key,
                 parentNode: parentId,
-                displayName: "test",
+                displayName,
                 memory: 0,
                 storage: 0,
                 time: 0,
                 subProcess: [],
                 spawnInfo : null
             }
-
 
             set({                
                 processes: [...get().processes, process],

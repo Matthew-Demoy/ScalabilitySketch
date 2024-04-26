@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react';
 import Transfer from './edges/Transfer';
 import { TimeScale, displayTime } from './core/time';
 import Process from './nodes/Server/Process';
-import { ThreadStatus } from './nodes/types';
+import { NodeType, ThreadStatus } from './nodes/types';
 import useAutoLayout, { type LayoutOptions } from './layout/useLayout';
 import React from 'react';
 
@@ -30,11 +30,14 @@ const selector = (state: RFState) => ({
   timeScale: state.timeScale,
   setNodes: state.setNodes,
   threads: state.threads,
-  messages: state.messages
+  messages: state.messages,
+  createNode: state.createNode,
+  presets : state.presets,
+  loadPreset : state.loadPreset
 });
 
-function Flow() {  
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, time, setTimeScale, timeScale, setNodes, threads, messages } = useStore(
+function Flow() {
+  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, time, setTimeScale, timeScale, setNodes, threads, messages, createNode, presets, loadPreset } = useStore(
     useShallow(selector),
   );
 
@@ -42,17 +45,17 @@ function Flow() {
     algorithm: 'elk' as LayoutOptions['algorithm'],
     direction: 'LR',
     spacing: [50, 50],
-  }), []); 
+  }), []);
   // this hook handles the computation of the layout once the elements or the direction changes
   useAutoLayout(layoutOptions);
-  
+
   const runningProcessCount = threads.filter(t => t.status === ThreadStatus.RUNNING).length
   const requests = threads.filter(t => t.callingThreadId == null).length
 
   const { isRunning, tick } = useStore()
 
   const [reactFlowInstance, setReactFlowInstance] = useState(null as ReactFlowInstance | null);
-  
+
 
   const onInit = (instance: ReactFlowInstance) => { setReactFlowInstance(instance) }
 
@@ -71,30 +74,17 @@ function Flow() {
   const y = viewPort?.y || 0
   const [isTaskViewOpen, setIsTaskViewOpen] = useState(false);
 
-
-  const handleAddComponent = (choice: any) => {
-
-    const component = {
-      id: (nodes.length + 1).toString(),
-      type: choice,
-      data: {
-        componentName: choice,
-        tasks: new Map(),
-        total: choice === Component.DATABASE ? 0 : undefined
-      },
-      position: { x: 1, y: 1 }
-    }
-
-    setNodes([...nodes, component])
-
-  }
-
   const handleStepForward = () => {
     tick()
   }
 
+  const handleAddComponent = (choice: NodeType) => {
+    createNode(choice)
+  }
 
-
+  const presetButtons = presets.map((preset, index) => {
+    return <button onClick={() => loadPreset(index)}> {preset.name} </button>
+  })
   return (
     <span>
       <div className={'buttonContainer'}>
@@ -115,8 +105,18 @@ function Flow() {
         {isRunning ? <button className={'stopButton'} onClick={() => useStore.getState().resetSimulation()}>Stop</button>
           : <button className={'startButton'} onClick={() => useStore.getState().startSimulation()}>Start</button>}
         {<button disabled={isRunning} onClick={() => handleStepForward()}>Step Forward</button>}
+        Add Component
+        <button onClick={() => handleAddComponent(NodeType.CLIENT)}>+ client</button>
+        <button onClick={() => handleAddComponent(NodeType.SERVER)}>+ server</button>
+        <button onClick={() => handleAddComponent(NodeType.DATABASE)}>+ database</button>
+        Presets
+        <div>
+          {presetButtons}
+        </div>
+
       </div>
       
+
       <ReactFlow
         nodes={nodes}
         edges={edges}
